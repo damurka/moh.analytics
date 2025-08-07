@@ -1,0 +1,19 @@
+Package: moh.analytics
+Title: Show Quick Analytics for Selected Indicators
+Version: 0.0.0.9000
+Authors@R: 
+    person("David", "Kariuki", , "hello@damurka.com", role = c("aut", "cre"))
+Description: An internal Shiny application to quickly visualize selected health indicators. Built for use within the Ministry of Health to support timely decision-making and performance tracking.
+License: MIT + file LICENSE
+Imports: 
+    bslib,
+    config,
+    golem,
+    lubridate,
+    pkgload,
+    shiny
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
+Depends: 
+    R (>= 3.5)
