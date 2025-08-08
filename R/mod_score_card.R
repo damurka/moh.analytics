@@ -1,0 +1,237 @@
+#' score_card UI Function
+#'
+#' @description A shiny Module.
+#'
+#' @param id,input,output,session Internal parameters for {shiny}.
+#'
+#' @noRd
+#'
+#' @importFrom shiny NS tagList
+mod_score_card_ui <- function(id) {
+  ns <- NS(id)
+  page_fillable(
+    layout_column_wrap(
+      width = 1 / 4,
+      fill = FALSE,
+      value_box(
+        "Full immunized Children (%)",
+        uiOutput(ns("fic"), container = h2),
+        p('Source: KHIS'),
+        showcase = bs_icon("shield-check"),
+        showcase_layout = "top right",
+        theme = 'teal'
+      ),
+      value_box(
+        "Skilled Birth Attendance (%)",
+        uiOutput(ns("sba"), container = h2),
+        p('Source: KHIS'),
+        showcase = bs_icon("person-heart"),
+        showcase_layout = "top right",
+        theme = 'teal'
+      ),
+      value_box(
+        "Institutional Maternal Mortality Rate (per 100,000)",
+        uiOutput(ns("mmr_inst"), container = h2),
+        p('Source: KHIS'),
+        showcase = bs_icon("hospital"),
+        showcase_layout = "top right",
+        theme = 'pink'
+      ),
+      value_box(
+        "Maternal mortality Rate (per 100,000)",
+        uiOutput(ns("mmr"), container = h2),
+        p('Source: KDHS'),
+        showcase = bs_icon("heart-pulse"),
+        showcase_layout = "top right",
+        theme = 'pink'
+      )
+    ),
+    layout_column_wrap(
+      width = 1 / 4,
+      fill = FALSE,
+      value_box(
+        "Infant mortality Rate (per 1,000 Live Births)",
+        uiOutput(ns("imr"), container = h2),
+        p('Source: KDHS'),
+        showcase = bs_icon("emoji-frown"),
+        showcase_layout = "top right",
+        theme = 'pink'
+      ),
+      value_box(
+        "Stunting in Children Under 5 (%)",
+        uiOutput(ns("stunt"), container = h2),
+        p('Source: KDHS'),
+        showcase = bs_icon("bar-chart"),
+        showcase_layout = "top right",
+        theme = 'pink'
+      ),
+      value_box(
+        "Teenage Pregnancy Rate (%)",
+        uiOutput(ns("tpr"), container = h2),
+        p('Source: KDHS'),
+        showcase = bs_icon("person-fill-up"),
+        showcase_layout = "top right",
+        theme = 'pink'
+      ),
+      value_box(
+        "Under 5 Mortality Rate (per 1,000 Live Births)",
+        uiOutput(ns("umr"), container = h2),
+        p('Source: KDHS'),
+        showcase = bs_icon("emoji-dizzy"),
+        showcase_layout = "top right",
+        theme = 'pink'
+      )
+    ),
+    layout_column_wrap(
+      width = 1,
+      class = "mt-3",
+      card(
+        full_screen = TRUE,
+        card_header(
+          "Trends",
+          class = "d-flex justify-content-between align-items-center"
+        ),
+        plotOutput("trend")
+      )
+    )
+  )
+}
+
+#' score_card Server Functions
+#'
+#' @noRd
+mod_score_card_server <- function(id, cache){
+  stopifnot(is.reactive(cache))
+
+  moduleServer(id, function(input, output, session){
+    ns <- session$ns
+
+    summarised_data <- reactive({
+      req(cache()$year, cache()$aggregation_level)
+
+      year_col <- cache()$year_type
+      year_val <- cache()$year
+      year_val <- suppressWarnings(if (year_col == "year") as.integer(year_val) else as.character(year_val))
+      agg_val <- cache()$aggregation_level
+      agg_unit_val <- cache()$aggregation_unit
+
+      req(year_val)
+
+      agg_unit_col <- switch(
+        agg_val,
+        "month" = "month",
+        "quarter" = if (year_col == "fiscal_year") "fiscal_quarter" else "quarter",
+        NULL
+      )
+
+      print(paste0(year_col, ' -> ', year_val))
+
+      df <- cache()$summarised_data %>%
+        filter(if (cache()$county == 'Kenya') TRUE else county == cache()$county, !!sym(year_col) == year_val)
+
+      if (!is.null(agg_unit_col)) {
+        req(agg_unit_val)
+        df <- df %>%
+          filter(!!sym(agg_unit_col) == agg_unit_val)
+      }
+      return(df)
+    })
+
+    kdhs_adjusted_data <- reactive({
+      req(cache()$county)
+      kdhs_data %>%
+        filter(county == cache()$county)
+    })
+
+    trend_data <- reactive({
+      req(cache()$county)
+
+      cache()$summarised_data %>%
+        filter(if (cache()$county == "Kenya") TRUE else county == cache()$county)
+    })
+
+    output$fic <- renderUI({
+      if (is.null(summarised_data()) || nrow(summarised_data()) == 0) {
+        return(HTML("&ndash;"))
+      }
+      paste0(scales::number(summarised_data()$cov_fic_adj), '%')
+    })
+
+    output$sba <- renderUI({
+      if (is.null(summarised_data()) || nrow(summarised_data()) == 0) {
+        return(HTML("&ndash;"))
+      }
+      paste0(scales::number(summarised_data()$cov_sba_adj), '%')
+    })
+
+    output$mmr_inst <- renderUI({
+      if (is.null(summarised_data()) || nrow(summarised_data()) == 0) {
+        return(HTML("&ndash;"))
+      }
+      scales::number(summarised_data()$inst_mmr_adj)
+    })
+
+    output$mmr <- renderUI({
+      if (nrow(kdhs_adjusted_data()) == 0) {
+        return(HTML("&ndash;"))
+      }
+      if (is.na(kdhs_adjusted_data()$mmr)) {
+        return(HTML("&ndash;"))
+      }
+      scales::number(kdhs_adjusted_data()$mmr)
+    })
+
+    output$imr <- renderUI({
+      if (nrow(kdhs_adjusted_data()) == 0) {
+        return(HTML("&ndash;"))
+      }
+      if (is.na(kdhs_adjusted_data()$imr)) {
+        return(HTML("&ndash;"))
+      }
+      scales::number(kdhs_adjusted_data()$imr)
+    })
+
+    output$stunt <- renderUI({
+      if (nrow(kdhs_adjusted_data()) == 0) {
+        return(HTML("&ndash;"))
+      }
+      if (is.na(kdhs_adjusted_data()$stunting)) {
+        return(HTML("&ndash;"))
+      }
+      paste0(scales::number(kdhs_adjusted_data()$stunting), '%')
+    })
+
+    output$tpr <- renderUI({
+      if (nrow(kdhs_adjusted_data()) == 0) {
+        return(HTML("&ndash;"))
+      }
+      if (is.na(kdhs_adjusted_data()$tpr)) {
+        return(HTML("&ndash;"))
+      }
+      paste0(scales::number(kdhs_adjusted_data()$tpr), '%')
+    })
+
+    output$umr <- renderUI({
+      if (nrow(kdhs_adjusted_data()) == 0) {
+        return(HTML("&ndash;"))
+      }
+      if (is.na(kdhs_adjusted_data()$under5_deaths)) {
+        return(HTML("&ndash;"))
+      }
+      scales::number(kdhs_adjusted_data()$under5_deaths)
+    })
+
+    output$trend <- renderPlot({
+      req(trend_data())
+      trend_data() %>%
+        ggplot(aes(x = period)) +
+        geom_line(aes(y = fic_per, color = "FIC %")) +
+        geom_line(aes(y = sba_per, color = "SBA %")) +
+        geom_line(aes(y = mmr_inst, color = "MMR Inst")) +
+        labs(x = NULL, y = NULL, color = "Indicator") +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    })
+
+  })
+}
