@@ -11,7 +11,7 @@
 #' @return A data.frame of aggregated and computed health indicators.
 #'
 #' @noRd
-generate_indicators <- function(.data, level = c('national', 'county'), period = c('fiscal_year', 'year', 'month')) {
+generate_indicators <- function(.data, level = c('national', 'county'), period = c('fiscal_year', 'year', 'fiscal_quarter', 'quarter', 'fiscal_month', 'month')) {
 
   check_required(.data)
   level <- arg_match(level)
@@ -26,16 +26,15 @@ generate_indicators <- function(.data, level = c('national', 'county'), period =
     period,
     year = 'year',
     fiscal_year = 'fiscal_year',
-    month = c('year', 'fiscal_year', 'month')
+    quarter = c('year', 'quarter'),
+    fiscal_quarter = c('fiscal_year', 'fiscal_quarter'),
+    month = c('year', 'quarter', 'month'),
+    fiscal_month = c('fiscal_year', 'fiscal_quarter', 'month')
   )
 
   .data %>%
-    mutate(
-      fiscal_year = as.integer(quarter(pe, fiscal_start = 7, type = "year.quarter")),
-      fiscal_year = factor(str_glue("{fiscal_year-1}/{fiscal_year}"))
-    ) %>%
     summarise(
-      across(-any_of(c('county', 'year', 'month', 'pe', 'fiscal_year')), sum, na.rm = TRUE),
+      across(-any_of(c('county', 'year', 'fiscal_year', 'quarter', 'fiscal_quarter', 'month', 'pe', 'fiscal_year')), sum, na.rm = TRUE),
 
       # missing mental
       # Missing Breastfed

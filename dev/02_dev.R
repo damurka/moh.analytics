@@ -22,6 +22,7 @@ attachment::att_amend_desc()
 ## Create a module infrastructure in R/
 golem::add_module(name = "score_card", with_test = TRUE) # Name of the module
 golem::add_module(name = "health_status", with_test = TRUE) # Name of the module
+golem::add_module(name = "sidebar", with_test = TRUE)
 
 ## Add helper functions ----
 ## Creates fct_* and utils_*
@@ -41,7 +42,7 @@ golem::add_any_file("file.json")
 ## Add internal datasets ----
 ## If you have data in your package
 usethis::use_data_raw(name = "my_dataset", open = FALSE)
-usethis::use_data(khis_data, kdhs_data, internal = TRUE, compress = 'xz')
+usethis::use_data(khis_data, kdhs_data, data_elements, internal = TRUE, compress = 'xz', overwrite = TRUE)
 
 ## Tests ----
 ## Add one line by test you want to create

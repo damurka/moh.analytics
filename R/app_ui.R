@@ -16,39 +16,7 @@ app_ui <- function(request) {
       ),
       title = 'Analytics Dashboard',
       collapsible = TRUE,
-      sidebar = sidebar(
-        title = tooltip(
-          span(
-            "Controls",
-            bs_icon("info-circle-fill"),
-            class = "sidebar-title"
-          ),
-          "Controls used to select data in the dashboard"
-        ),
-        selectizeInput(
-          'county',
-          label = 'County',
-          choices = NULL,
-          selected = NULL
-        ),
-        radioButtons(
-          inputId = "year_type",
-          label = "Year Type",
-          choices = c("Fiscal Year" = "fiscal_year", "Calendar Year" = "year"),
-          inline = TRUE
-        ),
-        selectInput(
-          inputId = "year",
-          label = "Year",
-          choices = NULL
-        ),
-        selectInput(
-          inputId = "agg_level",
-          label = "Aggregation Level",
-          choices = c("Month" = "month", "Quarter" = "quarter", "Year" = "year")
-        ),
-        uiOutput("agg_unit_ui")
-      ),
+      sidebar = mod_sidebar_ui("sidebar_1"),
 
       nav_panel("Score Card", mod_score_card_ui("score_card_1")),
       nav_panel("Health Status", mod_health_status_ui("health_status_1"))

@@ -6,12 +6,15 @@ Authors@R:
 Description: An internal Shiny application to quickly visualize selected health indicators. Built for use within the Ministry of Health to support timely decision-making and performance tracking.
 License: MIT + file LICENSE
 Imports: 
+    bsicons,
     bslib,
     cli,
     config,
     golem,
     lubridate,
     pkgload,
+    purrr,
+    R6,
     shiny,
     stringr
 Encoding: UTF-8

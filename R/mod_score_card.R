@@ -100,148 +100,125 @@ mod_score_card_ui <- function(id) {
 #' score_card Server Functions
 #'
 #' @noRd
-mod_score_card_server <- function(id, khis, kdhs, county, year_type, year, agg_unit, agg_level){
-  stopifnot(is.reactive(khis))
-  stopifnot(is.reactive(kdhs))
-  stopifnot(is.reactive(county))
-  stopifnot(is.reactive(year_type))
-  stopifnot(is.reactive(year))
-  stopifnot(is.reactive(agg_unit))
-  stopifnot(is.reactive(agg_level))
+mod_score_card_server <- function(id, cache){
+  stopifnot(is.reactive(cache))
 
   moduleServer(id, function(input, output, session){
     ns <- session$ns
 
     summarised_data <- reactive({
-      req(county(), year_type(), year(), agg_unit(), agg_level())
+      req(cache()$year, cache()$aggregation_level)
 
-      year_col <- year_type()
-      year_val <- year()
-      year_val <- if (year_col == "year") as.integer(year_val) else as.character(year_val)
-      agg_val <- agg_level()
-      agg_unit_val <- agg_unit()
+      year_col <- cache()$year_type
+      year_val <- cache()$year
+      year_val <- suppressWarnings(if (year_col == "year") as.integer(year_val) else as.character(year_val))
+      agg_val <- cache()$aggregation_level
+      agg_unit_val <- cache()$aggregation_unit
+
+      req(year_val)
 
       agg_unit_col <- switch(
         agg_val,
         "month" = "month",
-        "quarter" = if (year_col == "fiscal_year") "quarter" else "calendar_quarter",
+        "quarter" = if (year_col == "fiscal_year") "fiscal_quarter" else "quarter",
         NULL
       )
 
-      req(year_val, agg_val)
+      print(paste0(year_col, ' -> ', year_val))
 
-      df <- khis() %>%
-        filter(if (county() == 'Kenya') TRUE else county == county(), !!sym(year_col) == year_val)
+      df <- cache()$summarised_data %>%
+        filter(if (cache()$county == 'Kenya') TRUE else county == cache()$county, !!sym(year_col) == year_val)
 
-      if (!is.null(agg_unit_col) && !is.null(agg_unit_val)) {
+      if (!is.null(agg_unit_col)) {
+        req(agg_unit_val)
         df <- df %>%
           filter(!!sym(agg_unit_col) == agg_unit_val)
       }
+      return(df)
+    })
 
-      df %>%
-        summarise(
-          across(-any_of(c('county', 'year', 'fiscal_year', 'quarter', 'calendar_quarter', 'month')), sum, na.rm = TRUE)
-        ) %>%
-        mutate(
-          under1 = under1/12,
-          estimated_births = estimated_births/12,
-          fic_per = fic/under1,
-          sba_per = sba/estimated_births,
-          mmr_inst = 100000 * maternal_death/sba
-        )
+    kdhs_adjusted_data <- reactive({
+      req(cache()$county)
+      kdhs_data %>%
+        filter(county == cache()$county)
     })
 
     trend_data <- reactive({
-      req(county())
+      req(cache()$county)
 
-      khis() %>%
-        filter(if (county() == "Kenya") TRUE else county == county()) %>%
-        mutate(period = ym(paste0(year, ' ', month))) %>%
-        summarise(
-          under1 = sum(under1, na.rm = TRUE) / 12,
-          estimated_births = sum(estimated_births, na.rm = TRUE) / 12,
-          fic = sum(fic, na.rm = TRUE),
-          sba = sum(sba, na.rm = TRUE),
-          maternal_death = sum(maternal_death, na.rm = TRUE),
-          .by = period
-        ) %>%
-        mutate(
-          fic_per = fic / under1 * 100,
-          sba_per = sba / estimated_births * 100,
-          mmr_inst = 100000 * maternal_death / sba
-        ) %>%
-        arrange(period)
+      cache()$summarised_data %>%
+        filter(if (cache()$county == "Kenya") TRUE else county == cache()$county)
     })
 
     output$fic <- renderUI({
-      if (nrow(summarised_data()) == 0) {
+      if (is.null(summarised_data()) || nrow(summarised_data()) == 0) {
         return(HTML("&ndash;"))
       }
-      scales::percent(summarised_data()$fic_per)
+      paste0(scales::number(summarised_data()$cov_fic_adj), '%')
     })
 
     output$sba <- renderUI({
-      if (nrow(summarised_data()) == 0) {
+      if (is.null(summarised_data()) || nrow(summarised_data()) == 0) {
         return(HTML("&ndash;"))
       }
-      scales::percent(summarised_data()$sba_per)
+      paste0(scales::number(summarised_data()$cov_sba_adj), '%')
     })
 
     output$mmr_inst <- renderUI({
-      if (nrow(summarised_data()) == 0) {
+      if (is.null(summarised_data()) || nrow(summarised_data()) == 0) {
         return(HTML("&ndash;"))
       }
-      scales::number(summarised_data()$mmr_inst)
+      scales::number(summarised_data()$inst_mmr_adj)
     })
 
     output$mmr <- renderUI({
-      if (nrow(kdhs()) == 0) {
+      if (nrow(kdhs_adjusted_data()) == 0) {
         return(HTML("&ndash;"))
       }
-      if (is.na(kdhs()$mmr)) {
+      if (is.na(kdhs_adjusted_data()$mmr)) {
         return(HTML("&ndash;"))
       }
-      scales::number(kdhs()$mmr)
+      scales::number(kdhs_adjusted_data()$mmr)
     })
 
     output$imr <- renderUI({
-      if (nrow(kdhs()) == 0) {
+      if (nrow(kdhs_adjusted_data()) == 0) {
         return(HTML("&ndash;"))
       }
-      if (is.na(kdhs()$imr)) {
+      if (is.na(kdhs_adjusted_data()$imr)) {
         return(HTML("&ndash;"))
       }
-      scales::number(kdhs()$imr)
+      scales::number(kdhs_adjusted_data()$imr)
     })
 
     output$stunt <- renderUI({
-      if (nrow(kdhs()) == 0) {
+      if (nrow(kdhs_adjusted_data()) == 0) {
         return(HTML("&ndash;"))
       }
-      if (is.na(kdhs()$stunting)) {
+      if (is.na(kdhs_adjusted_data()$stunting)) {
         return(HTML("&ndash;"))
       }
-      paste0(scales::number(kdhs()$stunting), '%')
+      paste0(scales::number(kdhs_adjusted_data()$stunting), '%')
     })
 
     output$tpr <- renderUI({
-      if (nrow(kdhs()) == 0) {
+      if (nrow(kdhs_adjusted_data()) == 0) {
         return(HTML("&ndash;"))
       }
-      if (is.na(kdhs()$tpr)) {
+      if (is.na(kdhs_adjusted_data()$tpr)) {
         return(HTML("&ndash;"))
       }
-      paste0(scales::number(kdhs()$tpr), '%')
+      paste0(scales::number(kdhs_adjusted_data()$tpr), '%')
     })
 
     output$umr <- renderUI({
-      if (nrow(kdhs()) == 0) {
+      if (nrow(kdhs_adjusted_data()) == 0) {
         return(HTML("&ndash;"))
       }
-      if (is.na(kdhs()$under5_deaths)) {
+      if (is.na(kdhs_adjusted_data()$under5_deaths)) {
         return(HTML("&ndash;"))
       }
-      scales::number(kdhs()$under5_deaths)
+      scales::number(kdhs_adjusted_data()$under5_deaths)
     })
 
     output$trend <- renderPlot({
