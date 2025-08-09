@@ -1,268 +1,172 @@
 library(khisr)
 library(dplyr)
 library(tidyr)
-library(lubridate)
+library(readxl)
 library(purrr)
+library(lubridate)
+library(stringr)
 
-khis_cred(config_path = 'khisr/inst/secret/secret.json')
+khis_cred(config_path = '../khisr/inst/secret/secret.json')
 
-# HTstlNrwDAH - MOH 717 Revised 2020 _Maternal deaths
-# KDFtI6rqYwI - MOH 711 Rev 2020_Maternal deaths 10-14Years
-# BYMSIbnUzXQ - MOH 711 Rev 2020_Maternal deaths 15-19Years
-# AC1Iorxdijc - MOH 711 Rev 2020_Maternal deaths 20-24 Years
-# dPRCstLVkZu - MOH 711 Rev 2020_Maternal deaths 25+ Years
-# 
-# HNl64GqRCd5 - MOH 717 Rev2020_Live births
-# Ye28rnsRe3q - MOH 717 Revised 2020 - Still births
-# UqKC1DJnymn - MOH 711 Live birth
-# rYn8RCcHJg1 - MOH 711 Fresh Still Birth
-# wZtDYVBa41h - MOH 711 Macerated still Birth
-# 
-# BA4dSFQINJq - MOH 711 Rev 2020_Children under five deaths
-# 
-# Fz0LzxMT1vV - MOH 711 Pregnant women completing 4 ANC visits
-# 
-# cV4qoKSYiBs - MOH 711 Client receiving Male condoms
-# 
-get_data_elements(id %.in% c('BQmcVE8fex4', 'uHM6lzLXDBd', 'yQFyyQBhXQf', 'DuBH6qPPdaO', 'otgQMOXuyIn', 'PggNwT09D3U', 'cV4qoKSYiBs', 'OiuBpHJw4kf', 'Fxb4iVJdw2g', 'paDQStynGGD', 'PgQIx7Hq1kp', 'NMCIxSeGpS3', 'Wv02gixbRpT', 'hRktPfPEegP', 'CJdFYcZ1zOq', 'TUHzoPGLM3t')) %>% 
-  print(n = 600)
+# elements <- read_csv('indicators.csv')
 
-fp <- get_indicators(name %.like% 'family planning', fields = 'name, numerator') %>% 
-  print(n = 100)
+elements <- read_excel('inst/indicators.xlsx', 'service') %>%
+  separate_wider_delim(element_id, delim = '.', names = c('element_id', 'category_id'), too_few = 'align_start')
+pop_elements <- read_excel('inst/indicators.xlsx', 'population')
+datasets_els <- read_excel('inst/indicators.xlsx', 'datasets')
+orgs <- get_organisation_units(level %.eq% 2)
+k_factors <-  elements %>%
+  distinct(column_name, k_factor)
 
-# tBPGQFhWB7M - MOH710 Fully Immunized Children(FIC) under 1 year
-# pMbuvKvH4rg - Population surving infants (under 1 year)
-get_data_elements(id %.in% c('tBPGQFhWB7M', 'pMbuvKvH4rg'))
+pop_cols <- c('wra', 'est_deliveries', 'pop_under5', 'pop_under1', 'est_livebirths',
+              'pop_6_59', 'pop_total', 'est_pregnancies', 'pop_10_14')
 
-data_elements <- tribble(
-  ~element_id, ~element_name, ~element_type, ~category_id, ~ category_name, ~column_name,
-  'tBPGQFhWB7M', 'MOH710 Fully Immunized Children(FIC) under 1 year', 'data_element', 'bCfwecaPx2W', '>1  Years', 'fic',
-  'tBPGQFhWB7M', 'MOH710 Fully Immunized Children(FIC) under 1 year', 'data_element', 'ieuodyY5ybC', '<1 Years', 'fic',
-  'pMbuvKvH4rg', 'Population surving infants (under 1 year)', 'population', 'NhSoXUMPK2K', 'default', 'under1',
-  'Kx64gGqaFVq', 'MOH 711 Assisted vaginal delivery', 'data_element', 'NhSoXUMPK2K', 'default', 'sba',
-  'sMqM8DwiAaj', 'MOH 711 Breach Delivery', 'data_element', 'NhSoXUMPK2K', 'default', 'sba',
-  'rAZBTMa7Jy3', 'MOH 711 Caesarian Sections', 'data_element', 'NhSoXUMPK2K', 'default', 'sba',
-  'jaPrPmor6WV', 'MOH 711 Normal Deliveries', 'data_element',	'NhSoXUMPK2K', 'default', 'sba',
-  'tmlMpIqHimf', 'Estimated Deliveries', 'population', 'NhSoXUMPK2K', 'default', 'estimated_births',
-  'KDFtI6rqYwI',' MOH 711 Rev 2020_Maternal deaths 10-14Years', 'data_element', 'NhSoXUMPK2K', 'default', 'maternal_death',
-  'BYMSIbnUzXQ', 'MOH 711 Rev 2020_Maternal deaths 15-19Years', 'data_element', 'NhSoXUMPK2K', 'default', 'maternal_death',
-  'AC1Iorxdijc', 'MOH 711 Rev 2020_Maternal deaths 20-24 Years', 'data_element', 'NhSoXUMPK2K', 'default', 'maternal_death',
-  'dPRCstLVkZu', 'MOH 711 Rev 2020_Maternal deaths 25+ Years', 'data_element', 'NhSoXUMPK2K', 'default', 'maternal_death',
-  'XoHnrLBL1qB', 'MOH 710 Vaccines and Immunisation Rev 2020', 'dataset', NA, NA, 'vacc_rr',
-  'UpS2bTVcClZ', 'MOH 711 Integrated Summary Report: Reproductive & Child Health, Medical & Rehabilitation Services Rev 2020', 'dataset', NA, NA, 'anc_rr'
-)
-
-counties <- get_organisation_units(level %.eq% 2) %>% 
-  rename(county = name)
-
-population_elements <- data_elements %>% 
-  filter(element_type == 'population')
-
-population_analytics <- get_analytics(
-  dx %.d% unique(population_elements$element_id),
-  pe %.d% c(2020:2025),
-  ou %.d% 'LEVEL-2'
-) %>% 
-  right_join(counties, join_by(ou == id)) %>% 
-  left_join(population_elements, join_by(dx == element_id)) %>% 
-  mutate(
-    year = as.integer(pe),
-  ) %>% 
-  arrange(county, pe) %>% 
-  select(county, column_name, year, value) %>% 
-  pivot_wider(names_from = column_name, values_from = value)
-
-d_elements <- data_elements %>% 
-  filter(element_type == 'data_element')
-
-elements_analytics <- get_analytics(
-  dx %.d% unique(d_elements$element_id),
-  pe %.d% c(202001:202012, 202101:202112, 202201:202212, 202301:202312, 202401:202412, 202501:202506),
-  co %.d% unique(d_elements$category_id),
+pop_data <- get_analytics(
+  dx %.d% pop_elements$element_id,
+  pe %.d% c(2023:2025),
   ou %.d% 'LEVEL-2',
   timeout = 300
-) %>% 
-  right_join(counties, join_by(ou == id)) %>% 
-  left_join(d_elements, join_by(dx == element_id, co == category_id)) %>% 
-  summarise(
-    value = sum(value, na.rm = TRUE),
-    .by = c(county, pe, column_name)
-  ) %>% 
+) %>%
+  left_join(pop_elements, join_by(dx == element_id), relationship = 'many-to-many') %>%
+  left_join(orgs, join_by(ou == id)) %>%
   mutate(
-    pe = ym(pe),
-    year = year(pe),
-    month = month(pe, label = TRUE, abbr = FALSE),
-    quarter = as.integer(quarter(pe, fiscal_start = 7, type = "quarter")), 
-    quarter = factor(str_glue("Q{quarter}")), 
-    fiscal_year = as.integer(quarter(pe, fiscal_start = 7, type = "year.quarter")), 
-    fiscal_year = factor(str_glue("{fiscal_year-1}/{fiscal_year}"))
-  ) %>% 
-  arrange(county, pe) %>%
-  select(-pe) %>% 
+    year = as.integer(pe)
+  ) %>%
+  rename(county = name) %>%
+  select(county, year, column_name, value) %>%
   pivot_wider(names_from = column_name, values_from = value)
 
-dataset_elements <- population_elements <- data_elements %>% 
-  filter(element_type == 'dataset')
+datasets_data <- get_data_sets_by_level(datasets_els$element_id, '2023-07-01', '2025-06-30', level = 2) %>%
+  mutate(dataset = str_trim(dataset)) %>%
+  left_join(datasets_els, join_by(dataset == elenent_name)) %>%
+  mutate(reporting_rate = actual_reports/expected_reports * 100) %>%
+  select(county, year, month, reporting_rate, column_name) %>%
+  pivot_wider(names_from = column_name, values_from = reporting_rate)
 
-dataset <- get_analytics(
-  dx %.d% paste0(dataset_elements$element_id, '.REPORTING_RATE'),
-  pe %.d% c(202001:202012, 202101:202112, 202201:202212, 202301:202312, 202401:202412, 202501:202506),
-  ou %.d% 'LEVEL-2'
-) %>% 
-  separate_wider_delim(dx, '.', names = c('dataset_id', NA)) %>% 
-  left_join(counties, join_by(ou == id)) %>% 
-  left_join(dataset_elements, join_by(dataset_id == element_id)) %>% 
-  mutate(
-    pe = ym(pe),
-    month = month(pe, label = TRUE, abbr = FALSE),
-    year = year(pe),
-    quarter = as.integer(quarter(pe, fiscal_start = 7, type = "quarter")), 
-    quarter = factor(str_glue("Q{quarter}")), 
-    fiscal_year = as.integer(quarter(pe, fiscal_start = 7, type = "year.quarter")), 
-    fiscal_year = factor(str_glue("{fiscal_year-1}/{fiscal_year}"))
-  ) %>% 
-  arrange(county, pe) %>% 
-  select(county, year, month, fiscal_year, quarter, column_name, value) %>% 
-  pivot_wider(names_from = column_name, values_from = value)
 
-combined_data <- elements_analytics %>% 
-  left_join(population_analytics, join_by(county, year)) %>% 
-  left_join(dataset, join_by(county, year, month, fiscal_year, quarter))
+el_nocat <- elements %>%
+  filter(is.na(category_id))
 
-readr::write_csv(combined_data, 'moh.analytics/data.csv')
-
-indicator_groups <- list(
-  anc = c('sba'),
-  vacc = c('fic')
+data <- get_analytics(
+  dx %.d% el_nocat$element_id,
+  # pe %.d% c('2023July','2024July'),
+  pe %.d% c(202307:202312, 202401:202412, 202501:202506),
+  ou %.d% 'LEVEL-2',
+  # co %.d% 'all',
+  # startDate = '2023-07-01',
+  # endDate = '2025-06-30',
+  timeout = 300
 )
 
-all_indicators <- list_c(indicator_groups)
-k_defaults <- c(anc = 0.25, vacc = 0.25)
-last_year <- 2025
-
-combined_data <- combined_data %>% 
+data <- data %>%
+  left_join(el_nocat, join_by(dx == element_id), relationship = 'many-to-many') %>%
+  left_join(orgs, join_by(ou == id)) %>%
   mutate(
-    across(
-      all_of(all_indicators),
-      ~ get(paste0(names(keep(indicator_groups, ~ cur_column() %in% .x)), "_rr")),
-      .names = "{.col}_rr"
-    ),
+    pe = ym(pe),
+    month = month(pe, abbr = FALSE, label = TRUE),
+    year = year(pe)
   ) %>%
-  mutate(
-    across(
-      all_of(paste0(all_indicators, "_rr")),
-      ~ if_else(. < 75 | is.na(.), median(.[. >= 75 & . <= 100], na.rm = TRUE), .)
-    ),
-    .by = county
-  ) %>% 
-  mutate(
-    across(
-      all_of(all_indicators),
-      ~ {
-        # Identify the main indicator group for the current sub-indicator
-        group <- names(keep(indicator_groups, ~ cur_column() %in% .x))
-        
-        # Retrieve the rate column for the current group directly within cur_data()
-        rate <- get(paste0(cur_column(), "_rr"))
-        
-        # Retrieve the k-value from the k_defaults list based on the group
-        k_value <- k_defaults[[group]]
-        
-        # Apply the adjustment formula if the rate is not missing or zero
-        if_else(
-          !is.na(rate) & rate != 0,
-          round(. * (1 + (1 / (rate / 100) - 1) * k_value), 1),
-          .
-        )
-      }
-    )
-  ) %>% 
-  mutate(
-    across(
-      all_of(all_indicators),
-      list(
-        med = ~ {
-          values <- if_else(year < last_year, ., NA_real_)
-          med <- median(values, na.rm = TRUE)
-          # med <- median(., na.rm = TRUE)
-          if_else(is.na(med), robust_max(.), med) |> round(1)
-        },
-        mad = ~ {
-          values <- if_else(year < last_year, ., NA_real_)
-          mad_val <- mad(values, na.rm = TRUE)
-          if_else(is.na(mad_val), robust_max(.), mad_val) |> round(1)
-        }
-      ),
-      .names = "{.col}_{.fn}"
-    ),
-    .by = c(county)
-  ) %>% 
-  mutate(
-    # Step 2: Calculate outlier flags based on bounds
-    across(
-      all_of(all_indicators),
-      ~ {
-        med <- get(paste0(cur_column(), "_med"))
-        mad <- get(paste0(cur_column(), "_mad"))
-        
-        lower_bound <- round(med - 5 * mad, 1)
-        upper_bound <- round(med + 5 * mad, 1)
-        
-        if_else(!is.na(.) & (. < lower_bound | . > upper_bound), 1, 0)
-      },
-      .names = "{.col}_outlier5std"
-    ),
-    .by = county
-  ) %>% 
-  mutate(
-    across(
-      all_of(all_indicators),
-      ~ {
-        outlier <- get(paste0(cur_column(), "_outlier5std"))
-        med <- round(median(if_else(outlier != 1, ., NA_real_), na.rm = TRUE), 0)
-        
-        if_else(outlier == 1, robust_max(med), .)
-      }
-    ),
-    across(
-      all_of(all_indicators),
-      ~ {
-        med <- round(median(if_else(!is.na(.), ., NA_real_), na.rm = TRUE), 0)
-        max_med <- robust_max(med)
-        if_else(
-          is.na(.) & !is.na(max_med),
-          max_med,
-          .
-        )
-      }
-    ),
-    .by = c(county, year)
-  ) %>%
-  select(-any_of(paste0(all_indicators, "_rr")))
-
-combined_data %>% 
+  rename(county = name) %>%
   summarise(
-    across(-any_of(c('county', 'fiscal_year', 'quarter', 'year', 'month')), sum, na.rm = TRUE),
-    .by = c(county, year)
+    total = sum(value),
+    .by = c(county, year, month, pe, column_name)
   ) %>%
-  mutate(
-    # instlivebirths = sba,
-    under1 = under1/12,
-    estimated_births = estimated_births/12,
-    fic_per = fic/under1 * 100,
-    sba_per = sba/estimated_births * 100,
-    mmr_inst = 100000 * maternal_death/sba
-  ) %>% 
-  select(-ends_with('med'), -ends_with('mad'), -ends_with('outlier5std')) %>% 
-  print(n = 500)
+  pivot_wider(
+    names_from = column_name,
+    values_from = total
+  ) %>%
+  arrange(county, year, month)
 
-robust_max <- function(x, fallback = NA) {
-  finite_values <- x[is.finite(x)]
-  
-  if (length(finite_values) == 0) {
-    return(fallback)
-  } else {
-    max(finite_values)
-  }
-}
+el_cat <- elements %>%
+  # separate_wider_delim(element_id, delim = '.', names = c('element_id', 'category_id'), too_few = 'align_start') %>%
+  drop_na(category_id) %>%
+  distinct(element_id, category_id, .keep_all = TRUE)
+
+data1 <- get_analytics(
+  dx %.d% el_cat$element_id,
+  pe %.d% c(202307:202312, 202401:202412, 202501:202506),
+  ou %.d% 'LEVEL-2',
+  co %.d% 'all',
+  timeout = 300
+)
+
+data1 <- data1 %>%
+  right_join(el_cat, join_by(dx == element_id, co == category_id)) %>%
+  left_join(orgs, join_by(ou == id)) %>%
+  mutate(
+    pe = ym(pe),
+    month = month(pe, abbr = FALSE, label = TRUE),
+    year = year(pe)
+  ) %>%
+  rename(county = name) %>%
+  summarise(
+    total = sum(value),
+    .by = c(county, year, month, pe, column_name)
+  ) %>%
+  pivot_wider(
+    names_from = column_name,
+    values_from = total
+  ) %>%
+  arrange(county, year, month)
+
+# Combine both parts
+final_df <- data %>%
+  left_join(data1, join_by(county, year, month, pe)) %>%
+  left_join(datasets_data, join_by(county, year, month)) %>%
+  left_join(pop_data, join_by(county, year)) %>%
+  mutate(across(all_of(pop_cols), ~ .x /12)) %>%
+  mutate(
+    fiscal_year = as.integer(quarter(pe, fiscal_start = 7, type = "year.quarter")),
+    fiscal_year = factor(str_glue("{fiscal_year-1}/{fiscal_year}")),
+    fiscal_quarter = str_glue('Q{quarter(pe, fiscal_start = 7)}'),
+    quarter = case_when(
+      month %in% c('January', 'February', 'March') ~ 'Q1',
+      month %in% c('April', 'May', 'June') ~ 'Q2',
+      month %in% c('July', 'August', 'September') ~ 'Q3',
+      month %in% c('October', 'November', 'December') ~ 'Q4',
+      .default = NA
+    )
+  ) %>%
+  relocate(any_of('county'), year, fiscal_year, quarter, fiscal_quarter, month, pe)
+
+final_df %>%
+  adjust_data(k_factors) %>%
+  generate_indicators(level = 'national') %>%
+  select(starts_with('pop'), starts_with('est'))
+
+khis_data <- final_df
+
+# 11,12
+county_12 <- final_df %>%
+  generate_indicators(level = 'county') %>%
+  select(any_of('county'), fiscal_year, opd_utilization_rate, bed_occupancy_rate, cov_penta1, cov_anc1, cov_sba, chemo, radio, cataract, malaria_test_positivity, maternal_death_audited,
+         inst_mmr, fsb_rate, alos, opd_utilization_rate_adj, bed_occupancy_rate_adj, cov_penta1_adj, cov_anc1_adj, malaria_test_positivity_adj,
+         cov_sba_adj, chemo_adj, radio_adj, cataract_adj, maternal_death_audited_adj, inst_mmr_adj,
+         fsb_rate_adj, alos_adj) %>%
+  pivot_longer(-any_of(c('county', 'fiscal_year')), names_to = 'indicator', values_to = 'values') %>%
+  pivot_wider(names_from = fiscal_year, values_from = values)
+
+# 13,14,15
+kenya_12 <- final_df %>%
+  generate_indicators(level = 'national') %>%
+  select(any_of('county'), fiscal_year, cov_fic, cov_penta3, confirmed_malaria, cov_cervical, cov_hpv2, hba1c, cov_htn, cva, heart_failure, cbe, sgbv_72h, total_sgbv, cov_sgbv,rta,
+         cov_fic_adj, cov_penta3_adj, confirmed_malaria_adj, cov_cervical_adj, cov_hpv2_adj, hba1c_adj, cov_htn_adj, cva_adj, heart_failure_adj, cbe_adj, sgbv_72h_adj, total_sgbv_adj, cov_sgbv_adj, rta_adj) %>%
+  pivot_longer(-any_of(c('county', 'fiscal_year')), names_to = 'indicator', values_to = 'values') %>%
+  pivot_wider(names_from = fiscal_year, values_from = values) %>% print(n = 50)
+
+# 16,17,18
+kenya_12 <- final_df %>%
+  generate_indicators(level = 'national') %>%
+  select(any_of('county'), fiscal_year, cov_sba, instdelivery, inst_mmr, stillbirth_rate, fsb_rate, cov_anc8, maternal_death_audited, cov_low_bweigth, cov_kmc, cov_cord_care, cov_treated_pnuemonia, cov_treated_diarhoea, contraceptive, cov_vitamina, cov_underweight, cov_delayed_milestone,
+         cov_sba_adj, instdelivery_adj, inst_mmr_adj, stillbirth_rate_adj, fsb_rate_adj, cov_anc8_adj, maternal_death_audited_adj, cov_low_bweigth_adj, cov_kmc_adj, cov_cord_care_adj, cov_treated_pnuemonia_adj, cov_treated_diarhoea_adj, contraceptive_adj, cov_vitamina_adj, cov_underweight_adj, cov_delayed_milestone_adj) %>%
+  pivot_longer(-any_of(c('county', 'fiscal_year')), names_to = 'indicator', values_to = 'values') %>%
+  pivot_wider(names_from = fiscal_year, values_from = values)
+
+kenya_12 %>%
+  mutate(
+    county = 'Kenya'
+  ) %>%
+  bind_rows(county_12) %>%
+  relocate(county) %>%
+  write_csv('16-17.csv')
 

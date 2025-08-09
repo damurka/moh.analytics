@@ -72,6 +72,15 @@ mod_sidebar_server <- function(id, cache) {
         pull(!!sym(input$year_type))
     })
 
+    memoised_month_choices <- memoise(function(year_col, year_val) {
+      khis_data %>%
+        filter(!!sym(year_col) == year_val) %>%
+        distinct(month, year) %>%
+        mutate(label = paste0(month, " ", year)) %>%
+        arrange(desc(year), desc(match(month, month.name))) %>%
+        transmute(label, value = month)
+    })
+
     month_choices <- reactive({
       req(khis_data, input$year_type, input$year)
 
@@ -81,14 +90,8 @@ mod_sidebar_server <- function(id, cache) {
       year_val <- suppressWarnings(if (year_col == "year") as.integer(year_val) else as.character(year_val))
 
       req(year_val)
-      print(year_val)
 
-      khis_data %>%
-        filter(!!sym(year_col) == year_val) %>%
-        distinct(month, year) %>%
-        mutate(label = paste0(month, " ", year)) %>%
-        arrange(desc(year), desc(match(month, month.name))) %>%
-        transmute(label, value = month)
+      memoised_month_choices(year_col, year_val)
     })
 
     observeEvent(TRUE, {
@@ -118,10 +121,13 @@ mod_sidebar_server <- function(id, cache) {
       cache()$set_aggregation_level(input$agg_level)
     })
 
-    observeEvent(input$agg_unit, {
-      req(input$agg_unit)
+    observeEvent({
+      input$agg_unit
+      input$agg_level
+    }, {
+      req(input$agg_unit, input$agg_level)
       cache()$set_aggregation_unit(input$agg_unit)
-    })
+    }, ignoreInit = TRUE)
 
     output$agg_unit_ui <- renderUI({
       req(input$agg_level, month_choices())

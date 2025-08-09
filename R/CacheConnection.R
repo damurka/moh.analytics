@@ -91,8 +91,6 @@ CacheConnection <- R6::R6Class(
       cli::cli_abort(c('x' = '{.field field_name} is readonly'))
     },
 
-
-
     #' @field khis_data description
     khis_data = function(value) {
       if (is_missing(value)) {
@@ -133,22 +131,8 @@ CacheConnection <- R6::R6Class(
         }
 
         data <- self$khis_data %>%
-          generate_indicators(level = level, period = period)
+          cached_generate_indicators(level = level, period = period)
         return(data)
-      }
-
-      cli::cli_abort(c('x' = '{.field field_name} is readonly'))
-    },
-
-    #' @field years description
-    years = function(value) {
-      if (is_missing(value)) {
-        private$depend('year_type')
-        dt <- self$khis_data %>%
-          distinct(!!sym(self$year_type)) %>%
-          arrange(desc(!!sym(self$year_type))) %>%
-          pull(!!sym(self$year_type))
-        return(dt)
       }
 
       cli::cli_abort(c('x' = '{.field field_name} is readonly'))

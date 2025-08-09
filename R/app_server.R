@@ -12,4 +12,9 @@ app_server <- function(input, output, session) {
   mod_sidebar_server("sidebar_1", cache)
   mod_score_card_server("score_card_1", cache)
   mod_health_status_server("health_status_1")
+  mod_vaccines_server("vaccines_1", cache)
+
+  observe({
+    session$sendCustomMessage("resizeCharts", list())
+  })
 }
