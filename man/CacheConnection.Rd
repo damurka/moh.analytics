@@ -26,10 +26,6 @@ reactive updates (for Shiny apps).
 
 \item{\code{aggregation_level}}{description}
 
-\item{\code{k_factors}}{description}
-
-\item{\code{khis_data}}{description}
-
 \item{\code{summarised_data}}{description
 Update a field (with change tracking)}
 }

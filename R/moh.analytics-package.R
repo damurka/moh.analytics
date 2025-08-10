@@ -21,5 +21,6 @@
 #' @importFrom sf st_read
 #' @importFrom stringr str_ends
 #' @importFrom stringr str_glue
+#' @importFrom stringr str_remove
 ## usethis namespace: end
 NULL

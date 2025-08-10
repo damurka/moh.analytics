@@ -104,46 +104,31 @@ mod_score_card_server <- function(id, cache){
   moduleServer(id, function(input, output, session){
     ns <- session$ns
 
+    open_indicator_data <- reactive({
+      get_indicator_data(cache()$county, cache()$year_type, cache()$aggregation_level)
+    })
+
     summarised_data <- reactive({
       req(cache()$year, cache()$aggregation_level)
 
       year_col <- cache()$year_type
-      year_val <- cache()$year
-      year_val <- suppressWarnings(if (year_col == "year") as.integer(year_val) else as.character(year_val))
-      agg_val <- cache()$aggregation_level
-      agg_unit_val <- cache()$aggregation_unit
+      year_val <- resolve_year_value(year_col, cache()$year)
 
+      req(year_val)
 
-      df <- cache()$summarised_data %>%
-        filter(if (cache()$county == 'Kenya') TRUE else county == cache()$county,
-               !!sym(year_col) == year_val)
-
-      if (agg_val != 'year') {
-        req(agg_unit_val)
-        agg_unit_col <- switch(
-          agg_val,
-          "month" = "month",
-          "quarter" = if (year_col == "fiscal_year") "fiscal_quarter" else "quarter",
-          NULL
-        )
-
-        df <- df %>%
-          filter(if(is.null(agg_unit_col)) TRUE else !!sym(agg_unit_col) == agg_unit_val)
-      }
-      return(df)
+      open_indicator_data() %>%
+        filter_by_year_county(cov_fic_adj, cov_sba_adj, inst_mmr_adj,
+                              year_col = year_col,
+                              year_val = year_val,
+                              selected_county = cache()$county,
+                              agg_unit = cache()$aggregation_unit,
+                              agg_val = cache()$aggregation_level)
     })
 
     kdhs_adjusted_data <- reactive({
       req(cache()$county)
       kdhs_data %>%
         filter(county == cache()$county)
-    })
-
-    trend_data <- reactive({
-      req(cache()$county)
-
-      cache()$summarised_data %>%
-        filter(if (cache()$county == "Kenya") TRUE else county == cache()$county)
     })
 
     output$fic <- renderUI({

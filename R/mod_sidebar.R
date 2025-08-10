@@ -10,14 +10,6 @@
 mod_sidebar_ui <- function(id) {
   ns <- NS(id)
   sidebar(
-    title = tooltip(
-      span(
-        "Controls",
-        bs_icon("info-circle-fill"),
-        class = "sidebar-title"
-      ),
-      "Controls used to select data in the dashboard"
-    ),
     selectizeInput(
       ns('county'),
       label = 'County',
@@ -72,22 +64,11 @@ mod_sidebar_server <- function(id, cache) {
         pull(!!sym(input$year_type))
     })
 
-    memoised_month_choices <- memoise(function(year_col, year_val) {
-      khis_data %>%
-        filter(!!sym(year_col) == year_val) %>%
-        distinct(month, year) %>%
-        mutate(label = paste0(month, " ", year)) %>%
-        arrange(desc(year), desc(match(month, month.name))) %>%
-        transmute(label, value = month)
-    })
-
     month_choices <- reactive({
       req(khis_data, input$year_type, input$year)
 
       year_col <- input$year_type
-      year_val <- input$year
-
-      year_val <- suppressWarnings(if (year_col == "year") as.integer(year_val) else as.character(year_val))
+      year_val <- resolve_year_value(year_col, cache()$year)
 
       req(year_val)
 
@@ -106,8 +87,8 @@ mod_sidebar_server <- function(id, cache) {
 
     observeEvent(input$year_type, {
       req(cache(), input$year_type)
-      freezeReactiveValue(input, "year")
-      updateSelectInput(session, "year", choices = years(), selected = isolate(years())[1])
+      # freezeReactiveValue(input, "year")
+      updateSelectInput(session, "year", choices = years())
       cache()$set_year_type(input$year_type)
     })
 

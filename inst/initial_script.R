@@ -127,10 +127,10 @@ final_df <- data %>%
       .default = NA
     )
   ) %>%
-  relocate(any_of('county'), year, fiscal_year, quarter, fiscal_quarter, month, pe)
+  relocate(any_of('county'), year, fiscal_year, quarter, fiscal_quarter, month, pe) %>%
+  adjust_data(k_factors)
 
 final_df %>%
-  adjust_data(k_factors) %>%
   generate_indicators(level = 'national') %>%
   select(starts_with('pop'), starts_with('est'))
 

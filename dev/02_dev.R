@@ -24,13 +24,19 @@ golem::add_module(name = "score_card", with_test = TRUE) # Name of the module
 golem::add_module(name = "health_status", with_test = TRUE) # Name of the module
 golem::add_module(name = "sidebar", with_test = TRUE)
 golem::add_module(name = "vaccines", with_test = TRUE)
+golem::add_module(name = "generic_indicator", with_test = TRUE)
+golem::add_module(name = "vaccines_fic", with_test = TRUE)
+golem::add_module(name = "vaccines_penta1", with_test = TRUE)
+golem::add_module(name = "vaccines_penta3", with_test = TRUE)
+golem::add_module(name = "vaccines_hpv2", with_test = TRUE)
 
 ## Add helper functions ----
 ## Creates fct_* and utils_*
 golem::add_fct("adjust_data", with_test = TRUE)
 golem::add_fct("generate_indicators", with_test = TRUE)
 
-golem::add_utils("utils", with_test = TRUE)
+golem::add_utils("cache", with_test = TRUE)
+golem::add_utils("helper", with_test = TRUE)
 
 ## External resources
 ## Creates .js and .css files at inst/app/www

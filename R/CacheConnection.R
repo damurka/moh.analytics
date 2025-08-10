@@ -81,58 +81,11 @@ CacheConnection <- R6::R6Class(
     #' @field aggregation_level description
     aggregation_level = function(value) private$getter('aggregation_level', value),
 
-    #' @field k_factors description
-    k_factors = function(value){
-      if (is_missing(value)) {
-        private$depend('k_factors')
-        return(data_elements %>% distinct(column_name, k_factor))
-      }
-
-      cli::cli_abort(c('x' = '{.field field_name} is readonly'))
-    },
-
-    #' @field khis_data description
-    khis_data = function(value) {
-      if (is_missing(value)) {
-        private$depend('k_factors')
-        dt <- khis_data %>%
-          adjust_data(self$k_factors)
-        return(dt)
-      }
-
-      cli::cli_abort(c('x' = '{.field field_name} is readonly'))
-    },
-
     #' @field summarised_data description
     summarised_data = function(value){
       if (is_missing(value)) {
-        # private$depend('year_type')
-        # private$depend('aggregation_level')
-        # private$depend('county')
-        # private$depend('k_factors')
-
-        year_col <- self$year_type
-        agg_val <- self$aggregation_level
-        county <- self$county
-
-        level <- if (county == 'Kenya') 'national' else 'county'
-        period <- if (agg_val == 'year' && year_col == 'year') {
-          'year'
-        } else if (agg_val == 'year' && year_col == 'fiscal_year') {
-          'fiscal_year'
-        } else if (agg_val == 'quarter' && year_col == 'year') {
-          'quarter'
-        } else if (agg_val == 'quarter' && year_col == 'fiscal_year') {
-          'fiscal_quarter'
-        } else if (agg_val == 'month' && year_col == 'fiscal_year') {
-          'fiscal_month'
-        } else {
-          'month'
-        }
-
-        data <- self$khis_data %>%
-          cached_generate_indicators(level = level, period = period)
-        return(data)
+        dt <- get_indicator_data(self$county, self$year_type, self$aggregation_level)
+        return(dt)
       }
 
       cli::cli_abort(c('x' = '{.field field_name} is readonly'))

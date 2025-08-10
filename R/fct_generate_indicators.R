@@ -24,39 +24,18 @@ generate_indicators <- function(.data, level = c('national', 'county'), period =
   period <- arg_match(period)
   period_col <- switch(
     period,
-    year = 'year',
-    fiscal_year = 'fiscal_year',
-    quarter = c('year', 'quarter'),
+    # fiscal_year = 'fiscal_year',
+    # year = 'year',
     fiscal_quarter = c('fiscal_year', 'fiscal_quarter'),
+    quarter = c('year', 'quarter'),
+    fiscal_month = c('fiscal_year', 'fiscal_quarter', 'month'),
     month = c('year', 'quarter', 'month'),
-    fiscal_month = c('fiscal_year', 'fiscal_quarter', 'month')
+    period
   )
 
   .data %>%
-    mutate(
-      instdelivery = sba,
-      total_actual_bed_days = coalesce(total_bed, 0) * 30.5,
-      pop_24_49 = (coalesce(wra, 0) - coalesce(pop_15_24, 0))/5,
-      stillbirth = rowSums(across(c("macerated_stillbirth", "fresh_stillbirth")), na.rm = TRUE),
-      total_birth = rowSums(across(c("macerated_stillbirth", "fresh_stillbirth", "livebirths")), na.rm = TRUE),
-      total_opd = rowSums(across(c("first_attendance", "reattendance")), na.rm = TRUE),
-      total_bed_days = rowSums(across(c("total_bed_days", "medical_bed_days")), na.rm = TRUE),
-      total_malaria_test = rowSums(across(c("total_bs_test", "rdt_test_positive", "rdt_test_negative")), na.rm = TRUE),
-      malaria_positive = rowSums(across(c("bs_positive", "rdt_test_positive")), na.rm = TRUE),
-      # total_breastfed = rowSums(across(c("breasfed_ex", "breastfed_not_ex")), na.rm = TRUE),
-
-      instdelivery_adj = sba_adj,
-      total_actual_bed_days_adj = coalesce(total_bed_adj, 0) * 30.5,
-      stillbirth_adj = rowSums(across(c("macerated_stillbirth_adj", "fresh_stillbirth_adj")), na.rm = TRUE),
-      total_birth_adj = rowSums(across(c("macerated_stillbirth_adj", "fresh_stillbirth_adj", "livebirths_adj")), na.rm = TRUE),
-      total_opd_adj = rowSums(across(c("first_attendance_adj", "reattendance_adj")), na.rm = TRUE),
-      total_bed_days_adj = rowSums(across(c("total_bed_days_adj", "medical_bed_days_adj")), na.rm = TRUE),
-      total_malaria_test_adj = rowSums(across(c("total_bs_test_adj", "rdt_test_positive_adj", "rdt_test_negative_adj")), na.rm = TRUE),
-      malaria_positive_adj = rowSums(across(c("bs_positive_adj", "rdt_test_positive_adj")), na.rm = TRUE),
-      # total_breastfed_adj = rowSums(across(c("breasfed_ex_adj", "breastfed_not_ex_adj")), na.rm = TRUE)
-    ) %>%
     summarise(
-      across(-any_of(c('county', 'year', 'fiscal_year', 'quarter', 'fiscal_quarter', 'month', 'pe', 'fiscal_year')), sum, na.rm = TRUE),
+      across(-any_of(c('county', 'year', 'fiscal_year', 'quarter', 'fiscal_quarter', 'month', 'pe')), sum, na.rm = TRUE),
       .by = all_of(c(level_col, period_col))
     ) %>%
     mutate(
