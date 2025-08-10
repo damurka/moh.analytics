@@ -10,11 +10,14 @@ Imports:
     bslib,
     cli,
     config,
+    geojsonsf,
     golem,
     lubridate,
+    memoise,
     pkgload,
     purrr,
     R6,
+    sf,
     shiny,
     stringr
 Encoding: UTF-8

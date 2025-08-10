@@ -10,16 +10,18 @@
 mod_score_card_ui <- function(id) {
   ns <- NS(id)
   page_fillable(
-    layout_column_wrap(
+    layout_columns(
       width = 1 / 4,
       fill = FALSE,
+      height = '150px',
       value_box(
         "Full immunized Children (%)",
         uiOutput(ns("fic"), container = h2),
         p('Source: KHIS'),
         showcase = bs_icon("shield-check"),
         showcase_layout = "top right",
-        theme = 'teal'
+        theme = 'teal',
+        class = "border-0 shadow-sm"
       ),
       value_box(
         "Skilled Birth Attendance (%)",
@@ -27,7 +29,8 @@ mod_score_card_ui <- function(id) {
         p('Source: KHIS'),
         showcase = bs_icon("person-heart"),
         showcase_layout = "top right",
-        theme = 'teal'
+        theme = 'teal',
+        class = "border-0 shadow-sm"
       ),
       value_box(
         "Institutional Maternal Mortality Rate (per 100,000)",
@@ -35,7 +38,8 @@ mod_score_card_ui <- function(id) {
         p('Source: KHIS'),
         showcase = bs_icon("hospital"),
         showcase_layout = "top right",
-        theme = 'pink'
+        theme = 'pink',
+        class = "border-0 shadow-sm"
       ),
       value_box(
         "Maternal mortality Rate (per 100,000)",
@@ -43,19 +47,22 @@ mod_score_card_ui <- function(id) {
         p('Source: KDHS'),
         showcase = bs_icon("heart-pulse"),
         showcase_layout = "top right",
-        theme = 'pink'
+        theme = 'pink',
+        class = "border-0 shadow-sm"
       )
     ),
-    layout_column_wrap(
-      width = 1 / 4,
+    layout_columns(
+      # width = 1 / 4,
       fill = FALSE,
+      # fixed_width = TRUE,
       value_box(
         "Infant mortality Rate (per 1,000 Live Births)",
         uiOutput(ns("imr"), container = h2),
         p('Source: KDHS'),
         showcase = bs_icon("emoji-frown"),
         showcase_layout = "top right",
-        theme = 'pink'
+        theme = 'pink',
+        class = "border-0 shadow-sm"
       ),
       value_box(
         "Stunting in Children Under 5 (%)",
@@ -63,7 +70,8 @@ mod_score_card_ui <- function(id) {
         p('Source: KDHS'),
         showcase = bs_icon("bar-chart"),
         showcase_layout = "top right",
-        theme = 'pink'
+        theme = 'pink',
+        class = "border-0 shadow-sm"
       ),
       value_box(
         "Teenage Pregnancy Rate (%)",
@@ -71,7 +79,8 @@ mod_score_card_ui <- function(id) {
         p('Source: KDHS'),
         showcase = bs_icon("person-fill-up"),
         showcase_layout = "top right",
-        theme = 'pink'
+        theme = 'pink',
+        class = "border-0 shadow-sm"
       ),
       value_box(
         "Under 5 Mortality Rate (per 1,000 Live Births)",
@@ -79,19 +88,8 @@ mod_score_card_ui <- function(id) {
         p('Source: KDHS'),
         showcase = bs_icon("emoji-dizzy"),
         showcase_layout = "top right",
-        theme = 'pink'
-      )
-    ),
-    layout_column_wrap(
-      width = 1,
-      class = "mt-3",
-      card(
-        full_screen = TRUE,
-        card_header(
-          "Trends",
-          class = "d-flex justify-content-between align-items-center"
-        ),
-        plotOutput("trend")
+        theme = 'pink',
+        class = "border-0 shadow-sm"
       )
     )
   )
@@ -106,48 +104,31 @@ mod_score_card_server <- function(id, cache){
   moduleServer(id, function(input, output, session){
     ns <- session$ns
 
+    open_indicator_data <- reactive({
+      get_indicator_data(cache()$county, cache()$year_type, cache()$aggregation_level)
+    })
+
     summarised_data <- reactive({
       req(cache()$year, cache()$aggregation_level)
 
       year_col <- cache()$year_type
-      year_val <- cache()$year
-      year_val <- suppressWarnings(if (year_col == "year") as.integer(year_val) else as.character(year_val))
-      agg_val <- cache()$aggregation_level
-      agg_unit_val <- cache()$aggregation_unit
+      year_val <- resolve_year_value(year_col, cache()$year)
 
       req(year_val)
 
-      agg_unit_col <- switch(
-        agg_val,
-        "month" = "month",
-        "quarter" = if (year_col == "fiscal_year") "fiscal_quarter" else "quarter",
-        NULL
-      )
-
-      print(paste0(year_col, ' -> ', year_val))
-
-      df <- cache()$summarised_data %>%
-        filter(if (cache()$county == 'Kenya') TRUE else county == cache()$county, !!sym(year_col) == year_val)
-
-      if (!is.null(agg_unit_col)) {
-        req(agg_unit_val)
-        df <- df %>%
-          filter(!!sym(agg_unit_col) == agg_unit_val)
-      }
-      return(df)
+      open_indicator_data() %>%
+        filter_by_year_county(cov_fic_adj, cov_sba_adj, inst_mmr_adj,
+                              year_col = year_col,
+                              year_val = year_val,
+                              selected_county = cache()$county,
+                              agg_unit = cache()$aggregation_unit,
+                              agg_val = cache()$aggregation_level)
     })
 
     kdhs_adjusted_data <- reactive({
       req(cache()$county)
       kdhs_data %>%
         filter(county == cache()$county)
-    })
-
-    trend_data <- reactive({
-      req(cache()$county)
-
-      cache()$summarised_data %>%
-        filter(if (cache()$county == "Kenya") TRUE else county == cache()$county)
     })
 
     output$fic <- renderUI({

@@ -8,18 +8,21 @@ app_ui <- function(request) {
   tagList(
     # Leave this function for adding external resources
     golem_add_external_resources(),
-    # Your application UI logic
     page_navbar(
       theme = bs_theme(
-        bootswatch = "minty" #,
-        # base_font = font_google("Inter")
+        version = 5,
+        preset = 'bootstrap',
+        # bootswatch = "flatly",
+        primary = "#2c3e50",
+        secondary = "#3498db",
+        font_scale = 0.8
       ),
       title = 'Analytics Dashboard',
-      collapsible = TRUE,
       sidebar = mod_sidebar_ui("sidebar_1"),
 
       nav_panel("Score Card", mod_score_card_ui("score_card_1")),
-      nav_panel("Health Status", mod_health_status_ui("health_status_1"))
+      nav_panel("Health Status", mod_health_status_ui("health_status_1")),
+      nav_panel("Vaccines",  mod_vaccines_ui("vaccines_1"))
     )
   )
 }
@@ -43,7 +46,7 @@ golem_add_external_resources <- function() {
     bundle_resources(
       path = app_sys("app/www"),
       app_title = "moh.analytics"
-    )
+    ),
     # Add here other external resources
     # for example, you can add shinyalert::useShinyalert()
   )

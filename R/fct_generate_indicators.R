@@ -24,32 +24,21 @@ generate_indicators <- function(.data, level = c('national', 'county'), period =
   period <- arg_match(period)
   period_col <- switch(
     period,
-    year = 'year',
-    fiscal_year = 'fiscal_year',
-    quarter = c('year', 'quarter'),
+    # fiscal_year = 'fiscal_year',
+    # year = 'year',
     fiscal_quarter = c('fiscal_year', 'fiscal_quarter'),
+    quarter = c('year', 'quarter'),
+    fiscal_month = c('fiscal_year', 'fiscal_quarter', 'month'),
     month = c('year', 'quarter', 'month'),
-    fiscal_month = c('fiscal_year', 'fiscal_quarter', 'month')
+    period
   )
 
   .data %>%
     summarise(
-      across(-any_of(c('county', 'year', 'fiscal_year', 'quarter', 'fiscal_quarter', 'month', 'pe', 'fiscal_year')), sum, na.rm = TRUE),
-
-      # missing mental
-      # Missing Breastfed
-
-      pop_24_49 = (wra - pop_15_24)/5,
-      stillbirth = sum(macerated_stillbirth, fresh_stillbirth, na.rm = TRUE),
-      total_birth = sum(macerated_stillbirth, fresh_stillbirth, livebirths, na.rm = TRUE),
-      instdelivery = sba,
-      total_opd = sum(first_attendance, reattendance, na.rm = TRUE),
-      total_actual_bed_days = total_bed * 30.5,
-      total_bed_days = sum(total_bed_days, medical_bed_days, na.rm = TRUE),
-      total_malaria_test = sum(total_bs_test, rdt_test_positive, rdt_test_negative, na.rm = TRUE),
-      malaria_positive = sum(bs_positive, rdt_test_positive, na.rm = TRUE),
-      # total_breastfed = sum(breasfed_ex_adj, breastfed_not_ex_adj, na.rm = TRUE),
-
+      across(-any_of(c('county', 'year', 'fiscal_year', 'quarter', 'fiscal_quarter', 'month', 'pe')), sum, na.rm = TRUE),
+      .by = all_of(c(level_col, period_col))
+    ) %>%
+    mutate(
       # Unadjusted Indicators
       cov_sba = sba/est_deliveries * 100,
       inst_mmr = maternal_death/est_livebirths * 100000,
@@ -80,16 +69,6 @@ generate_indicators <- function(.data, level = c('national', 'county'), period =
       alos = medical_bed_days/total_medical_discharges,
 
       # Adjusted Indicators
-      stillbirth_adj = sum(macerated_stillbirth_adj, fresh_stillbirth_adj, na.rm = TRUE),
-      total_birth_adj = sum(macerated_stillbirth_adj, fresh_stillbirth_adj, livebirths_adj, na.rm = TRUE),
-      instdelivery_adj = sba_adj,
-      total_opd_adj = sum(first_attendance_adj, reattendance_adj, na.rm = TRUE),
-      total_actual_bed_days_adj = total_bed_adj * 30.5,
-      total_bed_days_adj = sum(total_bed_days_adj, medical_bed_days_adj, na.rm = TRUE),
-      total_malaria_test_adj = sum(total_bs_test_adj, rdt_test_positive_adj, rdt_test_negative_adj, na.rm = TRUE),
-      malaria_positive_adj = sum(bs_positive_adj, rdt_test_positive_adj, na.rm = TRUE),
-      # total_breastfed_adj = sum(breasfed_ex_adj, breastfed_not_ex_adj, na.rm = TRUE),
-
       cov_sba_adj = sba_adj/est_deliveries * 100,
       inst_mmr_adj = maternal_death_adj/est_livebirths * 100000,
       stillbirth_rate_adj = stillbirth_adj/total_birth_adj * 1000,
@@ -117,7 +96,5 @@ generate_indicators <- function(.data, level = c('national', 'county'), period =
       malaria_test_positivity_adj = malaria_positive_adj / total_malaria_test_adj * 100,
       bed_occupancy_rate_adj = total_bed_days_adj/total_actual_bed_days_adj * 100,
       alos_adj = medical_bed_days_adj/total_medical_discharges_adj,
-
-      .by = all_of(c(level_col, period_col))
     )
 }
