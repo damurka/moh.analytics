@@ -19,6 +19,7 @@
 #' @importFrom purrr keep
 #' @importFrom purrr list_c
 #' @importFrom sf st_read
+#' @importFrom shinycssloaders withSpinner
 #' @importFrom stringr str_ends
 #' @importFrom stringr str_glue
 #' @importFrom stringr str_remove

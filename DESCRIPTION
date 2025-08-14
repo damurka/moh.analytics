@@ -10,16 +10,23 @@ Imports:
     bslib,
     cli,
     config,
+    dplyr,
+    echarts4r,
+    echarts4r.maps,
     geojsonsf,
+    ggplot2,
     golem,
     lubridate,
     memoise,
     pkgload,
     purrr,
     R6,
+    rlang,
     sf,
     shiny,
-    stringr
+    shinycssloaders,
+    stringr,
+    tidyr
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2

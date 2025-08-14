@@ -24,9 +24,7 @@ reactive updates (for Shiny apps).
 
 \item{\code{aggregation_unit}}{description}
 
-\item{\code{aggregation_level}}{description}
-
-\item{\code{summarised_data}}{description
+\item{\code{aggregation_level}}{description
 Update a field (with change tracking)}
 }
 \if{html}{\out{</div>}}

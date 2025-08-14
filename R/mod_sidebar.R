@@ -46,9 +46,12 @@ mod_sidebar_server <- function(id, cache) {
   moduleServer(id, function(input, output, session){
     ns <- session$ns
 
+    # Reactive value to store the previous aggregation unit
+    # This helps in preventing the observer from firing on initial render
+    previous_agg_unit <- reactiveVal(NULL)
+
     counties <- reactive({
-      req(khis_data)
-      county <- khis_data %>%
+      county <- get_khis_data('county', 'fiscal_year') %>%
         select(county) %>%
         pull(county)
 
@@ -56,23 +59,26 @@ mod_sidebar_server <- function(id, cache) {
     })
 
     years <- reactive({
-      req(khis_data)
-      khis_data %>%
-        relocate(county, year, fiscal_year) %>%
+      months_data %>%
         distinct(!!sym(input$year_type)) %>%
         arrange(desc(!!sym(input$year_type))) %>%
         pull(!!sym(input$year_type))
     })
 
     month_choices <- reactive({
-      req(khis_data, input$year_type, input$year)
+      req(input$year_type, input$year)
 
       year_col <- input$year_type
       year_val <- resolve_year_value(year_col, cache()$year)
 
       req(year_val)
 
-      memoised_month_choices(year_col, year_val)
+      months_data %>%
+        filter(!!sym(year_col) == year_val) %>%
+        distinct(month, year) %>%
+        mutate(label = paste0(month, " ", year)) %>%
+        arrange(desc(year), desc(match(month, month.name))) %>%
+        transmute(label, value = month)
     })
 
     observeEvent(TRUE, {
@@ -87,9 +93,8 @@ mod_sidebar_server <- function(id, cache) {
 
     observeEvent(input$year_type, {
       req(cache(), input$year_type)
-      # freezeReactiveValue(input, "year")
-      updateSelectInput(session, "year", choices = years())
       cache()$set_year_type(input$year_type)
+      updateSelectInput(session, "year", choices = years())
     })
 
     observeEvent(input$year, {
@@ -102,28 +107,41 @@ mod_sidebar_server <- function(id, cache) {
       cache()$set_aggregation_level(input$agg_level)
     })
 
-    observeEvent({
-      input$agg_unit
-      input$agg_level
-    }, {
-      req(input$agg_unit, input$agg_level)
-      cache()$set_aggregation_unit(input$agg_unit)
-    }, ignoreInit = TRUE)
+    observeEvent(input$agg_unit, {
+      req(cache(), input$agg_unit)
+      # Check if the new value is different from the previous on
+
+      # Get the previous value from the reactiveVal
+      prev_value <- previous_agg_unit()
+
+      print(prev_value)
+      print(input$agg_unit)
+
+      if (is.null(prev_value) || isTRUE(input$agg_unit != prev_value)) {
+        print(input$agg_unit)
+        cache()$set_aggregation_unit(input$agg_unit)
+        # Update the reactive value with the current value
+        previous_agg_unit(input$agg_unit)
+      }
+    })
 
     output$agg_unit_ui <- renderUI({
       req(input$agg_level, month_choices())
 
-      if (input$agg_level == 'month') {
+      # Reset the previous_agg_unit when the aggregation level changes
+      # This ensures the new input's value will be processed
+      previous_agg_unit(NULL)
+      level <- input$agg_level
+
+      if (input$agg_level %in% c('month', 'quarter')) {
         selectInput(
           inputId = ns("agg_unit"),
-          label = "Select Month",
-          choices = setNames(month_choices()$value, month_choices()$label)
-        )
-      } else if (input$agg_level == "quarter") {
-        selectInput(
-          inputId = ns("agg_unit"),
-          label = "Select Quarter",
-          choices = paste0("Q", 1:4)
+          label = if (level == 'month') "Select Month" else "Select Quarter",
+          choices = if (level == 'month') {
+            setNames(month_choices()$value, month_choices()$label)
+          } else {
+            paste0("Q", 1:4)
+          }
         )
       }
     })

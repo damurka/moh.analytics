@@ -79,17 +79,7 @@ CacheConnection <- R6::R6Class(
     aggregation_unit = function(value) private$getter('aggregation_unit', value),
 
     #' @field aggregation_level description
-    aggregation_level = function(value) private$getter('aggregation_level', value),
-
-    #' @field summarised_data description
-    summarised_data = function(value){
-      if (is_missing(value)) {
-        dt <- get_indicator_data(self$county, self$year_type, self$aggregation_level)
-        return(dt)
-      }
-
-      cli::cli_abort(c('x' = '{.field field_name} is readonly'))
-    }
+    aggregation_level = function(value) private$getter('aggregation_level', value)
   ),
   private = list(
     .data_template = list(
