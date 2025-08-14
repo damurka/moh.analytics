@@ -25,13 +25,6 @@ mod_vaccines_fic_server <- function(id, cache){
     cache = cache,
     var_cols = c('cov_fic', 'cov_fic_adj'),
     target_val = 85,
-    titles = list(
-      map = str_glue('Distribution of FIC Coverage in Kenya by County, {cache()$year}'),
-      plot = if (is_national(cache()$county)) {
-        str_glue('National Monthly Trend in Full Child Immunisation - {cache()$year}')
-      } else {
-        str_glue('{cache()$county}: Monthly Full Child Immunsation Trend - {cache()$year}')
-      }
-    )
+    indicator_title = 'FIC Coverage'
   )
 }

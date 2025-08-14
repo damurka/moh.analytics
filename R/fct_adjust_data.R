@@ -37,14 +37,18 @@ adjust_data <- function(.data, k_factors) {
     malaria = c('bs_positive'),
     screening = c('cacx_screened', 'cbe'),
     ncd = c('hba1c', 'hypertension', 'cva', 'heart_failure', 'hypertension', 'total_hypertension'),
-    anc = c('anc1', 'sba', 'maternal_death', 'fresh_stillbirth', 'total_sgbv', 'sgbv_72h', 'macerated_stillbirth', 'anc8', 'low_bweigth', 'kmc', 'cord_care', 'contraceptive', 'delayed_milestone', 'total_underweight', 'livebirths', 'total_sgbv', 'preterm'),
-    opd_o5 = c('opd_over5', 'confirmed_malaria', 'mental_disorder', 'rta', 'first_attendance', 'reattendance'),
+    anc = c('anc1', 'instdelivery', 'csection', 'maternal_death', 'fresh_stillbirth', 'total_sgbv', 'sgbv_72h', 'macerated_stillbirth', 'anc8', 'low_bweigth', 'kmc', 'cord_care', 'contraceptive', 'delayed_milestone', 'total_underweight', 'livebirths', 'total_sgbv', 'preterm'),
+    opd_o5 = c('opd_over5', 'confirmed_malaria', 'mental_disorder', 'rta', 'rta_death', 'first_attendance', 'reattendance', 'snake_bites', 'dog_bites'),
     opd_u5 = c('opd_under5', 'pnuemonia_treated', 'diarrhea_treated', 'total_pehumonia', 'total_dehydration'),
     vacc = c('penta1', 'fic', 'penta3', 'hpv2', 'vitamina'),
     eye = c('cataract'),
     lab = c('total_bs_test', 'rdt_test_positive', 'rdt_test_negative'),
     cancer = c('chemo', 'radio'),
-    inpatient = c('medical_bed_days', 'total_bed_days', 'rta_death', 'maternal_death_audit', 'total_bed', 'total_medical_discharges')
+    inpatient = c('medical_bed_days', 'total_bed_days', 'maternal_death_audit', 'total_bed', 'total_medical_discharges', 'ortho_assist'),
+    fcdrr = c('total_vl'),
+    hiv_treatment = c('viral_suppressed'),
+    service_delivery = c('surgial_emergency'),
+    bfci = c('breasfed_ex', 'breastfed_not_ex')
   )
 
   all_indicators <- list_c(indicator_groups)
@@ -91,21 +95,21 @@ adjust_data <- function(.data, k_factors) {
         .names = '{.col}_adj'
       ),
     ) %>%
-    select(-ends_with('_rr')) %>%
+    select(-any_of(paste0(all_indicators, '_rr'))) %>%
     mutate(
       across(
-        any_of(all_indicators),
+        any_of(paste0(all_indicators, '_adj')),
         list(
           med = ~ {
             values <- if_else(year < last_year, ., NA_real_)
             med <- median(values, na.rm = TRUE)
             # med <- median(., na.rm = TRUE)
-            if_else(is.na(med), robust_max(.), med) |> round(1)
+            round(if_else(is.na(med), robust_max(.), med), 1)
           },
           mad = ~ {
             values <- if_else(year < last_year, ., NA_real_)
             mad_val <- mad(values, na.rm = TRUE)
-            if_else(is.na(mad_val), robust_max(.), mad_val) |> round(1)
+            round(if_else(is.na(mad_val), robust_max(.), mad_val), 1)
           }
         ),
         .names = "{.col}_{.fn}"
@@ -115,7 +119,7 @@ adjust_data <- function(.data, k_factors) {
     mutate(
       # Step 2: Calculate outlier flags based on bounds
       across(
-        any_of(all_indicators),
+        any_of(paste0(all_indicators, '_adj')),
         ~ {
           med <- get(paste0(cur_column(), "_med"))
           mad <- get(paste0(cur_column(), "_mad"))
@@ -131,7 +135,7 @@ adjust_data <- function(.data, k_factors) {
     ) %>%
     mutate(
       across(
-        any_of(all_indicators),
+        any_of(paste0(all_indicators, '_adj')),
         ~ {
           outlier <- get(paste0(cur_column(), "_outlier5std"))
           med <- round(median(if_else(outlier != 1, ., NA_real_), na.rm = TRUE), 0)
@@ -140,7 +144,7 @@ adjust_data <- function(.data, k_factors) {
         }
       ),
       across(
-        any_of(all_indicators),
+        any_of(paste0(all_indicators, '_adj')),
         ~ {
           med <- round(median(if_else(!is.na(.), ., NA_real_), na.rm = TRUE), 0)
           max_med <- robust_max(med)
@@ -154,25 +158,27 @@ adjust_data <- function(.data, k_factors) {
       .by = c(county, year)
     ) %>%
     mutate(
-      instdelivery = sba,
+      instdelivery = rowSums(across(c(instdelivery, csection)), na.rm = TRUE),
+      sba = instdelivery,
       total_actual_bed_days = coalesce(total_bed, 0) * 30.5,
       pop_24_49 = (coalesce(wra, 0) - coalesce(pop_15_24, 0))/5,
-      stillbirth = rowSums(across(c("macerated_stillbirth", "fresh_stillbirth")), na.rm = TRUE),
-      total_birth = rowSums(across(c("macerated_stillbirth", "fresh_stillbirth", "livebirths")), na.rm = TRUE),
-      total_opd = rowSums(across(c("first_attendance", "reattendance")), na.rm = TRUE),
-      total_bed_days = rowSums(across(c("total_bed_days", "medical_bed_days")), na.rm = TRUE),
-      total_malaria_test = rowSums(across(c("total_bs_test", "rdt_test_positive", "rdt_test_negative")), na.rm = TRUE),
-      malaria_positive = rowSums(across(c("bs_positive", "rdt_test_positive")), na.rm = TRUE),
-      # total_breastfed = rowSums(across(c("breasfed_ex", "breastfed_not_ex")), na.rm = TRUE),
+      stillbirth = rowSums(across(c(macerated_stillbirth, fresh_stillbirth)), na.rm = TRUE),
+      total_birth = rowSums(across(c(stillbirth, livebirths)), na.rm = TRUE),
+      total_opd = rowSums(across(c(first_attendance, reattendance)), na.rm = TRUE),
+      total_bed_days = rowSums(across(c(total_bed_days, medical_bed_days)), na.rm = TRUE),
+      total_malaria_test = rowSums(across(c(total_bs_test, rdt_test_positive, rdt_test_negative)), na.rm = TRUE),
+      malaria_positive = rowSums(across(c(bs_positive, rdt_test_positive)), na.rm = TRUE),
+      total_breastfed = rowSums(across(c(breasfed_ex, breastfed_not_ex)), na.rm = TRUE),
 
-      instdelivery_adj = sba_adj,
+      instdelivery_adj = rowSums(across(c(instdelivery_adj, csection_adj)), na.rm = TRUE),
+      sba_adj = instdelivery_adj,
       total_actual_bed_days_adj = coalesce(total_bed_adj, 0) * 30.5,
-      stillbirth_adj = rowSums(across(c("macerated_stillbirth_adj", "fresh_stillbirth_adj")), na.rm = TRUE),
-      total_birth_adj = rowSums(across(c("macerated_stillbirth_adj", "fresh_stillbirth_adj", "livebirths_adj")), na.rm = TRUE),
-      total_opd_adj = rowSums(across(c("first_attendance_adj", "reattendance_adj")), na.rm = TRUE),
-      total_bed_days_adj = rowSums(across(c("total_bed_days_adj", "medical_bed_days_adj")), na.rm = TRUE),
-      total_malaria_test_adj = rowSums(across(c("total_bs_test_adj", "rdt_test_positive_adj", "rdt_test_negative_adj")), na.rm = TRUE),
-      malaria_positive_adj = rowSums(across(c("bs_positive_adj", "rdt_test_positive_adj")), na.rm = TRUE),
-      # total_breastfed_adj = rowSums(across(c("breasfed_ex_adj", "breastfed_not_ex_adj")), na.rm = TRUE)
+      stillbirth_adj = rowSums(across(c(macerated_stillbirth_adj, fresh_stillbirth_adj)), na.rm = TRUE),
+      total_birth_adj = rowSums(across(c(macerated_stillbirth_adj, fresh_stillbirth_adj, livebirths_adj)), na.rm = TRUE),
+      total_opd_adj = rowSums(across(c(first_attendance_adj, reattendance_adj)), na.rm = TRUE),
+      total_bed_days_adj = rowSums(across(c(total_bed_days_adj, medical_bed_days_adj)), na.rm = TRUE),
+      total_malaria_test_adj = rowSums(across(c(total_bs_test_adj, rdt_test_positive_adj, rdt_test_negative_adj)), na.rm = TRUE),
+      malaria_positive_adj = rowSums(across(c(bs_positive_adj, rdt_test_positive_adj)), na.rm = TRUE),
+      total_breastfed_adj = rowSums(across(c(breasfed_ex_adj, breastfed_not_ex_adj)), na.rm = TRUE)
     )
 }

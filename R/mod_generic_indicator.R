@@ -46,7 +46,7 @@ mod_generic_indicator_ui <- function(id, var_name, icon, target_val) {
         ),
         card_body(
           class = "p-2",
-          echarts4rOutput(ns("plot"))
+          withSpinner(echarts4rOutput(ns("plot")))
         )
       ),
 
@@ -68,7 +68,9 @@ mod_generic_indicator_ui <- function(id, var_name, icon, target_val) {
 #' generic_indicator Server Functions
 #'
 #' @noRd
-mod_generic_indicator_server <- function(id, cache, var_cols, target_val, titles){
+mod_generic_indicator_server <- function(id, cache, var_cols, target_val, indicator_title){
+  stopifnot(is.reactive(cache))
+
   moduleServer(id, function(input, output, session){
     ns <- session$ns
 
@@ -85,8 +87,9 @@ mod_generic_indicator_server <- function(id, cache, var_cols, target_val, titles
       get_indicator_data(cache()$county, cache()$year_type, 'month') %>%
         filter_by_year_county(year_col = year_col,
                               year_val = year_val,
-                              include_month = TRUE,
+                              filter = FALSE,
                               selected_county = cache()$county,
+                              agg_val = 'month',
                               !!!var_cols)
     })
 
@@ -98,7 +101,7 @@ mod_generic_indicator_server <- function(id, cache, var_cols, target_val, titles
 
       req(year_val)
 
-      cached_generate_indicators(level = 'county', period = cache()$year_type) %>%
+      get_khis_data(level = 'county', period = cache()$year_type) %>%
         filter_by_year_county(year_col = year_col,
                               year_val = year_val,
                               !!!var_cols)
@@ -144,14 +147,14 @@ mod_generic_indicator_server <- function(id, cache, var_cols, target_val, titles
 
       val_col <- var_cols[grep('_adj', var_cols)]
 
+      title <- str_glue('Distribution of {indicator_title} in Kenya by County, {cache()$year}')
+
       chart <- county_data() %>%
         e_charts(county) %>%
         e_map_register("Kenya", shapefile()) %>%
-        # e_map(!!sym(val_col), map = "Kenya", nameProperty = 'county', zoom = 1, center = c(37, 0), aspectScale = 1) %>%
         e_map_(val_col, map = "Kenya", nameProperty = 'county', zoom = 1, center = c(37, 0), aspectScale = 1) %>%
-        # e_visual_map(!!sym(val_col), inRange = list(color = c('#d73027', '#fdae61', '#31a354'))) %>%
         e_visual_map_(val_col, inRange = list(color = c('#d73027', '#fdae61', '#31a354'))) %>%
-        e_title(titles$map, textStyle = list(fontSize = 16), left = 10, right = 60) %>%
+        e_title(title, textStyle = list(fontSize = 16), left = 10, right = 60) %>%
         e_toolbox() %>%
         e_toolbox_feature(feature = "saveAsImage") %>%
         e_toolbox_feature(feature = "dataView")
@@ -160,8 +163,7 @@ mod_generic_indicator_server <- function(id, cache, var_cols, target_val, titles
         chart <- chart %>% e_map_select(name = cache()$county)
       }
 
-      chart %>%
-        e_show_loading()
+      chart
     })
 
     output$plot <- renderEcharts4r({
@@ -172,10 +174,14 @@ mod_generic_indicator_server <- function(id, cache, var_cols, target_val, titles
 
       ymax <- max(monthly_data()[[unadj_col]], monthly_data()[[adj_col]], target(), na.rm = TRUE) * 1.05
 
+      title <- if (is_national(cache()$county)) {
+        str_glue('National Monthly Trend in {indicator_title} - {cache()$year}')
+      } else {
+        str_glue('{cache()$county}: Monthly {indicator_title} Trend - {cache()$year}')
+      }
+
       monthly_data() %>%
         e_charts(month) %>%
-        # e_line(!!sym(unadj_col), name = 'Unadjusted') %>%
-        # e_line(!!sym(adj_col), name = 'Adjusted') %>%
         e_line_(unadj_col, name = 'Unadjusted') %>%
         e_line_(adj_col, name = 'Adjusted') %>%
         e_y_axis(min = 0, max = round(ceiling(ymax / 10) * 10, 0)) %>%
@@ -184,7 +190,7 @@ mod_generic_indicator_server <- function(id, cache, var_cols, target_val, titles
                     label = list(formatter = str_glue("Target: {target()}%"))) %>%
         e_labels() %>%
         e_theme("macarons") %>%
-        e_title(titles$plot, textStyle = list(fontSize = 16), left = 10, right = 60) %>%
+        e_title(title, textStyle = list(fontSize = 16), left = 10, right = 60) %>%
         e_legend(orient = "horizontal", bottom = 0, left = "center", selected = list('Unadjusted' = FALSE, 'Adjusted' = TRUE)) %>%
         e_tooltip(trigger = "axis") %>%
         e_toolbox() %>%
@@ -193,8 +199,7 @@ mod_generic_indicator_server <- function(id, cache, var_cols, target_val, titles
         e_toolbox_feature(
           feature = "magicType",
           type = list("line", "bar")
-        ) %>%
-        e_show_loading()
+        )
     })
 
   })

@@ -22,16 +22,7 @@ generate_indicators <- function(.data, level = c('national', 'county'), period =
   )
 
   period <- arg_match(period)
-  period_col <- switch(
-    period,
-    # fiscal_year = 'fiscal_year',
-    # year = 'year',
-    fiscal_quarter = c('fiscal_year', 'fiscal_quarter'),
-    quarter = c('year', 'quarter'),
-    fiscal_month = c('fiscal_year', 'fiscal_quarter', 'month'),
-    month = c('year', 'quarter', 'month'),
-    period
-  )
+  period_col <- resolve_period_col(period = period)
 
   .data %>%
     summarise(
@@ -41,6 +32,7 @@ generate_indicators <- function(.data, level = c('national', 'county'), period =
     mutate(
       # Unadjusted Indicators
       cov_sba = sba/est_deliveries * 100,
+      csection_rate = csection/instdelivery * 100,
       inst_mmr = maternal_death/est_livebirths * 100000,
       stillbirth_rate = stillbirth/total_birth * 1000,
       fsb_rate = fresh_stillbirth/total_birth * 1000,
@@ -61,15 +53,20 @@ generate_indicators <- function(.data, level = c('national', 'county'), period =
       cov_cervical = cacx_screened/pop_24_49 * 100,
       cov_htn = hypertension/total_hypertension * 100,
       cov_sgbv = sgbv_72h/total_sgbv * 100,
+      cov_viral_suppressed = viral_suppressed/total_vl * 100,
       rta = rta/total_opd * 100,
       opd_utilization_rate = total_opd/pop_total,
       bed_occupancy_rate = total_bed_days/total_actual_bed_days * 100,
       cov_penta1 = penta1/pop_under1 * 100,
       malaria_test_positivity = malaria_positive / total_malaria_test * 100,
       alos = medical_bed_days/total_medical_discharges,
+      confirmed_malaria_rate = confirmed_malaria/pop_total * 1000,
+      cov_mental_disorder = mental_disorder/pop_total * 100,
+      cov_breastfed_ex = breasfed_ex/total_breastfed * 100,
 
       # Adjusted Indicators
       cov_sba_adj = sba_adj/est_deliveries * 100,
+      csection_rate_adj = csection_adj/instdelivery_adj * 100,
       inst_mmr_adj = maternal_death_adj/est_livebirths * 100000,
       stillbirth_rate_adj = stillbirth_adj/total_birth_adj * 1000,
       fsb_rate_adj = fresh_stillbirth_adj/total_birth_adj * 1000,
@@ -90,11 +87,15 @@ generate_indicators <- function(.data, level = c('national', 'county'), period =
       cov_cervical_adj = cacx_screened_adj/pop_24_49 * 100,
       cov_htn_adj = hypertension_adj/total_hypertension_adj * 100,
       cov_sgbv_adj = sgbv_72h_adj/total_sgbv_adj * 100,
+      cov_viral_suppressed_adj = viral_suppressed_adj/total_vl_adj * 100,
       rta_adj = rta_adj/total_opd_adj * 100,
-      opd_utilization_rate_adj = total_opd_adj/pop_total * 100,
+      opd_utilization_rate_adj = total_opd_adj/pop_total,
       cov_penta1_adj = penta1_adj/pop_under1 * 100,
       malaria_test_positivity_adj = malaria_positive_adj / total_malaria_test_adj * 100,
       bed_occupancy_rate_adj = total_bed_days_adj/total_actual_bed_days_adj * 100,
       alos_adj = medical_bed_days_adj/total_medical_discharges_adj,
+      confirmed_malaria_rate_adj = confirmed_malaria_adj/pop_total * 1000,
+      cov_mental_disorder_adj = mental_disorder_adj/pop_total * 100,
+      cov_breastfed_ex_adj = breasfed_ex_adj/total_breastfed_adj * 100,
     )
 }
