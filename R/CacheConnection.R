@@ -63,7 +63,11 @@ CacheConnection <- R6::R6Class(
 
     #' @description Set county.
     #' @param value Character.
-    set_aggregation_level = function(value) private$setter('aggregation_level', value, is_scalar_character)
+    set_aggregation_level = function(value) private$setter('aggregation_level', value, is_scalar_character),
+
+    #' @description Set county.
+    #' @param value Character.
+    set_analysis_type = function(value) private$setter('analysis_type', value, is_scalar_character)
   ),
   active = list(
     #' @field county description
@@ -79,7 +83,10 @@ CacheConnection <- R6::R6Class(
     aggregation_unit = function(value) private$getter('aggregation_unit', value),
 
     #' @field aggregation_level description
-    aggregation_level = function(value) private$getter('aggregation_level', value)
+    aggregation_level = function(value) private$getter('aggregation_level', value),
+
+    #' @field analysis_type description
+    analysis_type = function(value) private$getter('analysis_type', value)
   ),
   private = list(
     .data_template = list(
@@ -87,7 +94,8 @@ CacheConnection <- R6::R6Class(
       year_type = 'fiscal_year',
       year = NULL,
       aggregation_unit = NULL,
-      aggregation_level = 'year'
+      aggregation_level = 'year',
+      analysis_type = 'adjusted'
     ),
     .in_memory_data = NULL,
     .has_changed = FALSE,

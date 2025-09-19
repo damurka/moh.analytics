@@ -63,6 +63,7 @@ generate_indicators <- function(.data, level = c('national', 'county'), period =
       confirmed_malaria_rate = confirmed_malaria/pop_total * 1000,
       cov_mental_disorder = mental_disorder/pop_total * 100,
       cov_breastfed_ex = breasfed_ex/total_breastfed * 100,
+      cov_stunted = stunted/pop_under5 * 100,
 
       # Adjusted Indicators
       cov_sba_adj = sba_adj/est_deliveries * 100,
@@ -97,5 +98,6 @@ generate_indicators <- function(.data, level = c('national', 'county'), period =
       confirmed_malaria_rate_adj = confirmed_malaria_adj/pop_total * 1000,
       cov_mental_disorder_adj = mental_disorder_adj/pop_total * 100,
       cov_breastfed_ex_adj = breasfed_ex_adj/total_breastfed_adj * 100,
+      cov_stunted_adj = stunted_adj/pop_under5 * 100
     )
 }

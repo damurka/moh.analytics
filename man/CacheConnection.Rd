@@ -24,7 +24,9 @@ reactive updates (for Shiny apps).
 
 \item{\code{aggregation_unit}}{description}
 
-\item{\code{aggregation_level}}{description
+\item{\code{aggregation_level}}{description}
+
+\item{\code{analysis_type}}{description
 Update a field (with change tracking)}
 }
 \if{html}{\out{</div>}}
@@ -39,6 +41,7 @@ Update a field (with change tracking)}
 \item \href{#method-CacheConnection-set_year}{\code{CacheConnection$set_year()}}
 \item \href{#method-CacheConnection-set_aggregation_unit}{\code{CacheConnection$set_aggregation_unit()}}
 \item \href{#method-CacheConnection-set_aggregation_level}{\code{CacheConnection$set_aggregation_level()}}
+\item \href{#method-CacheConnection-set_analysis_type}{\code{CacheConnection$set_analysis_type()}}
 \item \href{#method-CacheConnection-clone}{\code{CacheConnection$clone()}}
 }
 }
@@ -137,6 +140,23 @@ Set county.
 Set county.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{CacheConnection$set_aggregation_level(value)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{value}}{Character.}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-CacheConnection-set_analysis_type"></a>}}
+\if{latex}{\out{\hypertarget{method-CacheConnection-set_analysis_type}{}}}
+\subsection{Method \code{set_analysis_type()}}{
+Set county.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{CacheConnection$set_analysis_type(value)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{

@@ -34,6 +34,7 @@ golem::add_module(name = "vaccines_hpv2", with_test = TRUE)
 ## Creates fct_* and utils_*
 golem::add_fct("adjust_data", with_test = TRUE)
 golem::add_fct("generate_indicators", with_test = TRUE)
+golem::add_fct("indicators", with_test = TRUE)
 
 golem::add_utils("cache", with_test = TRUE)
 golem::add_utils("helper", with_test = TRUE)
@@ -48,8 +49,8 @@ golem::add_any_file("file.json")
 
 ## Add internal datasets ----
 ## If you have data in your package
-usethis::use_data_raw(name = "my_dataset", open = FALSE)
-usethis::use_data(final_df, khis_data, kdhs_data, data_elements, months_data, internal = TRUE, compress = 'xz', overwrite = TRUE)
+usethis::use_data_raw(name = 'final_df', open = FALSE)
+usethis::use_data(khis_data, kdhs_data, data_elements, months_data, health_status, internal = TRUE, compress = 'xz', overwrite = TRUE)
 
 ## Tests ----
 ## Add one line by test you want to create
