@@ -23,7 +23,7 @@ pop_cols <- c('wra', 'est_deliveries', 'pop_under5', 'pop_under1', 'est_livebirt
 
 pop_data <- get_analytics(
   dx %.d% pop_elements$element_id,
-  pe %.d% c(2023:2025),
+  pe %.d% c(2018:2025),
   ou %.d% 'LEVEL-2',
   timeout = 300
 ) %>%
@@ -36,7 +36,7 @@ pop_data <- get_analytics(
   select(county, year, column_name, value) %>%
   pivot_wider(names_from = column_name, values_from = value)
 
-datasets_data <- get_data_sets_by_level(datasets_els$element_id, '2023-07-01', '2025-06-30', level = 2) %>%
+datasets_data <- get_data_sets_by_level(datasets_els$element_id, '2018-01-01', '2025-09-30', level = 2) %>%
   mutate(dataset = str_trim(dataset)) %>%
   left_join(datasets_els, join_by(dataset == elenent_name)) %>%
   mutate(reporting_rate = actual_reports/expected_reports * 100) %>%
@@ -47,18 +47,28 @@ datasets_data <- get_data_sets_by_level(datasets_els$element_id, '2023-07-01', '
 el_nocat <- elements %>%
   filter(is.na(category_id))
 
-data <- get_analytics(
+data_1 <- get_analytics(
   dx %.d% el_nocat$element_id,
-  # pe %.d% c('2023July','2024July'),
-  pe %.d% c(202307:202312, 202401:202412, 202501:202506),
+  pe %.d% c(201801:201812,201901:201912,202001:202012),
   ou %.d% 'LEVEL-2',
-  # co %.d% 'all',
-  # startDate = '2023-07-01',
-  # endDate = '2025-06-30',
-  timeout = 300
+  timeout = 1800
 )
 
-data <- data %>%
+data_2 <- get_analytics(
+  dx %.d% el_nocat$element_id,
+  pe %.d% c(202101:202112,202201:202212,202301:202312),
+  ou %.d% 'LEVEL-2',
+  timeout = 1800
+)
+
+data_3 <- get_analytics(
+  dx %.d% el_nocat$element_id,
+  pe %.d% c(202401:202412,202501:202509),
+  ou %.d% 'LEVEL-2',
+  timeout = 1800
+)
+
+data <- bind_rows(data_1, data_2, data_3) %>%
   left_join(el_nocat, join_by(dx == element_id), relationship = 'many-to-many') %>%
   left_join(orgs, join_by(ou == id)) %>%
   mutate(
@@ -82,15 +92,31 @@ el_cat <- elements %>%
   drop_na(category_id) %>%
   distinct(element_id, category_id, .keep_all = TRUE)
 
-data1 <- get_analytics(
+data1_1 <- get_analytics(
   dx %.d% el_cat$element_id,
-  pe %.d% c(202307:202312, 202401:202412, 202501:202506),
+  pe %.d% c(201801:201812,201901:201912,202001:202012),
   ou %.d% 'LEVEL-2',
   co %.d% 'all',
   timeout = 300
 )
 
-data1 <- data1 %>%
+data1_2 <- get_analytics(
+  dx %.d% el_cat$element_id,
+  pe %.d% c(202101:202112,202201:202212,202301:202312),
+  ou %.d% 'LEVEL-2',
+  co %.d% 'all',
+  timeout = 300
+)
+
+data1_3 <- get_analytics(
+  dx %.d% el_cat$element_id,
+  pe %.d% c(202401:202412,202501:202509),
+  ou %.d% 'LEVEL-2',
+  co %.d% 'all',
+  timeout = 300
+)
+
+data1 <- bind_rows(data1_1, data1_2, data1_3) %>%
   right_join(el_cat, join_by(dx == element_id, co == category_id)) %>%
   left_join(orgs, join_by(ou == id)) %>%
   mutate(
@@ -136,13 +162,11 @@ periods <- c("fiscal_year", "year", "fiscal_quarter", "quarter", "fiscal_month",
 
 combos <- expand.grid(level = levels, period = periods, stringsAsFactors = FALSE)
 
-khis_data <- map2(combos$level, combos$period, ~final_df %>% generate_indicators(level = .x, period = .y)) %>%
+khis_data <- map2(combos$level, combos$period, ~ final_df %>% generate_indicators(level = .x, period = .y)) %>%
   set_names(paste(combos$level, combos$period, sep = "_"))
 
 months_data <- final_df %>%
   distinct(year, fiscal_year, quarter, fiscal_quarter, month, pe)
-
-
 
 # 11,12
 county_12 <- final_df %>%
@@ -177,4 +201,36 @@ kenya_12 %>%
   bind_rows(county_12) %>%
   relocate(county) %>%
   write_csv('16-18.csv')
+
+library(tibble)
+
+health_status <- indicators <- tibble::tribble(
+  ~no, ~indicator, ~y2014, ~y2022, ~target_2025_26, ~target_27_28, ~data_source,
+  1, "Life expectancy at birth", 61.8, 66.0, 69.0, 71.0, "GHO/WHO",
+  2, "Healthy Life Expectancy (HALE)", 57.7, 63.0, 64.0, 66.0, "GHO/WHO",
+  3, "Under Five Mortality Rate", 52.0, 41.0, 33.0, 30.0, "KDHS 2022",
+  4, "Infant Mortality Rate", 39.0, 32.0, 27.0, 22.0, "KDHS 2022",
+  5, "Neonatal mortality rate", 22.0, 21.0, 17.0, 15.0, "KDHS 2022",
+  6, "Stillbirth rate", 19.7, 15.0, 13.5, 12.5, "KDHS 2022",
+  7, "Maternal Mortality Ratio (MMR)", 362.0, 355.0, 247.0, 175.0, "Kenya Population Census 2019",
+  8, "Number of AIDS-related Deaths", 9720.0, 18473.0, 14295.0, 12000.0, "Kenya HIV Estimates 2018/WHO",
+  9, "Malaria Mortality rate (%)", 5.1, 4.0, NA, 4.0, "KHIS",
+  10, "NCDs Mortality Rate (%)", 55.0, 39.0, 30.0, 27.0, "WHO NCD Progress Monitor; WHO vital statistics report 2022",
+  11, "Cancer mortality Rate (adult)", 3.0, 2.6, NA, 2.5, "KHIS",
+  12, "Death rate due to road traffic injuries (per 100,000 population)", 11.0, 8.0, 5.3, 4.4, "IHME - GHDx POI; NTSA",
+  13, "Mortality attributable to dietary risk factors (per 100,000)", 41.5, 28.0, 25.0, 26.0, "IHME; KNAP 2018-2022",
+  14, "HIV prevalence rate (%)", 5.6, 3.7, 3.7, 4.0, "Kenya HIV Estimates 2018/WHO/KENPHIA",
+  15, "HIV incidence rate (%)", 1.2, 0.598, 0.4, 0.4, "Kenya HIV Estimates 2018/WHO",
+  16, "TB incidence rate per 100,000 population", 423.0, 237.0, 230.0, 196.0, "WHO",
+  17, "TB Mortality rate", 38.0, 32.0, 23.0, 19.0, "WHO/TIBU",
+  18, "Malaria incidence rate", 166.0, 105.2, 42.2, 21.1, "WHO/KMIS",
+  19, "Adolescent birth rate\nProportion of adolescents (10–19 years) who are pregnant", 18.0, 15.0, 13.0, 12.0, "KHIS",
+  20, "Total fertility rate", 3.84, 3.4, 3.1, 3.0, "KDHS 2022",
+  21, "% incurring catastrophic health expenditures", 7.96, 6.2, 4.71, 3.72, "IHME - GHDx; KHHEUS",
+  22, "Out-of-pocket health expenditure (%) of total health expenditure", 32.1, 24.3, 18.72, 15.0, "KHHEUS 2018"
+) %>%
+  mutate(
+    change_2014_2022 = ifelse(is.na(y2014) | is.na(y2022), NA_real_, y2022 - y2014)
+  )
+
 

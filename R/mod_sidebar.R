@@ -22,18 +22,24 @@ mod_sidebar_ui <- function(id) {
       choices = c("Fiscal Year" = "fiscal_year", "Calendar Year" = "year"),
       inline = TRUE
     ),
-    selectInput(
+    selectizeInput(
       inputId = ns("year"),
       label = "Year",
       choices = NULL
     ),
-    selectInput(
+    selectizeInput(
       inputId = ns("agg_level"),
       label = "Aggregation Level",
       choices = c("Month" = "month", "Quarter" = "quarter", "Year" = "year"),
       selected = 'year'
     ),
-    uiOutput(ns("agg_unit_ui"))
+    uiOutput(ns("agg_unit_ui")),
+    selectizeInput(
+      inputId = ns("analysis_type"),
+      label = "Analysis Type",
+      choices = c("Adjusted" = "adjusted", "Unadjusted" = "unadjusted"),
+      selected = 'year'
+    )
   )
 }
 
@@ -94,7 +100,7 @@ mod_sidebar_server <- function(id, cache) {
     observeEvent(input$year_type, {
       req(cache(), input$year_type)
       cache()$set_year_type(input$year_type)
-      updateSelectInput(session, "year", choices = years())
+      updateSelectizeInput(session, "year", choices = years())
     })
 
     observeEvent(input$year, {
@@ -114,15 +120,16 @@ mod_sidebar_server <- function(id, cache) {
       # Get the previous value from the reactiveVal
       prev_value <- previous_agg_unit()
 
-      print(prev_value)
-      print(input$agg_unit)
-
       if (is.null(prev_value) || isTRUE(input$agg_unit != prev_value)) {
-        print(input$agg_unit)
         cache()$set_aggregation_unit(input$agg_unit)
         # Update the reactive value with the current value
         previous_agg_unit(input$agg_unit)
       }
+    })
+
+    observeEvent(input$analysis_type, {
+      req(cache(), input$analysis_type)
+      cache()$set_analysis_type(input$analysis_type)
     })
 
     output$agg_unit_ui <- renderUI({
@@ -134,7 +141,7 @@ mod_sidebar_server <- function(id, cache) {
       level <- input$agg_level
 
       if (input$agg_level %in% c('month', 'quarter')) {
-        selectInput(
+        selectizeInput(
           inputId = ns("agg_unit"),
           label = if (level == 'month') "Select Month" else "Select Quarter",
           choices = if (level == 'month') {

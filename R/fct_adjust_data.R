@@ -37,7 +37,7 @@ adjust_data <- function(.data, k_factors) {
     malaria = c('bs_positive'),
     screening = c('cacx_screened', 'cbe'),
     ncd = c('hba1c', 'hypertension', 'cva', 'heart_failure', 'hypertension', 'total_hypertension'),
-    anc = c('anc1', 'instdelivery', 'csection', 'maternal_death', 'fresh_stillbirth', 'total_sgbv', 'sgbv_72h', 'macerated_stillbirth', 'anc8', 'low_bweigth', 'kmc', 'cord_care', 'contraceptive', 'delayed_milestone', 'total_underweight', 'livebirths', 'total_sgbv', 'preterm'),
+    anc = c('anc1', 'instdelivery', 'csection', 'maternal_death', 'fresh_stillbirth', 'total_sgbv', 'sgbv_72h', 'macerated_stillbirth', 'anc8', 'low_bweigth', 'kmc', 'cord_care', 'contraceptive', 'delayed_milestone', 'total_underweight', 'livebirths', 'total_sgbv', 'preterm', 'stunted'),
     opd_o5 = c('opd_over5', 'confirmed_malaria', 'mental_disorder', 'rta', 'rta_death', 'first_attendance', 'reattendance', 'snake_bites', 'dog_bites'),
     opd_u5 = c('opd_under5', 'pnuemonia_treated', 'diarrhea_treated', 'total_pehumonia', 'total_dehydration'),
     vacc = c('penta1', 'fic', 'penta3', 'hpv2', 'vitamina'),

@@ -21,6 +21,7 @@ Imports:
     pkgload,
     purrr,
     R6,
+    reactable,
     rlang,
     sf,
     shiny,

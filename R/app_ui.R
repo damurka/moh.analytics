@@ -5,6 +5,7 @@
 #' @import shiny
 #' @noRd
 app_ui <- function(request) {
+  indicators <- get_indicators()
   tagList(
     # Leave this function for adding external resources
     golem_add_external_resources(),
@@ -20,9 +21,24 @@ app_ui <- function(request) {
       title = 'Analytics Dashboard',
       sidebar = mod_sidebar_ui("sidebar_1"),
 
-      nav_panel("Score Card", mod_score_card_ui("score_card_1")),
-      nav_panel("Health Status", mod_health_status_ui("health_status_1")),
-      nav_panel("Vaccines",  mod_vaccines_ui("vaccines_1"))
+      nav_panel("Health Status", mod_score_card_ui("score_card_1")),
+      # nav_panel("Health Status", mod_health_status_ui("health_status_1")),
+
+      !!!map(names(indicators), ~ {
+        nav_panel(.x,  navset_card_tab(
+          title = .x,
+
+          !!!unname(map(indicators[[.x]], function(title) {
+            nav_panel(title = title$short, mod_generic_indicator_ui(
+              id = title$id,
+              var_name = title$short,
+              icon = title$icon,
+              target_val = title$target,
+              unit = if (is.na(title$unit)) '' else title$unit
+            ))
+          }))
+        ))
+      })
     )
   )
 }
